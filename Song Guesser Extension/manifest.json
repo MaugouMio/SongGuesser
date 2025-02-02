@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "Song Guesser",
+  "version": "0.0.1",
+  "permissions": [
+    "storage"
+  ],
+  "action": {},
+  "background": {
+    "service_worker": "background.js"
+  },
+  "externally_connectable": {
+    "matches": ["https://www.youtube.com/*"]
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["sounds/*"],
+      "matches": ["https://www.youtube.com/*"]
+    }
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/watch*"],
+      "js": ["window/modify.js"],
+	  "css": ["window/main.css"],
+	  "run_at": "document_start",
+	  "world": "MAIN"
+    },
+    {
+      "matches": ["https://www.youtube.com/watch*"],
+      "js": ["window/resource.js"],
+	  "run_at": "document_start"
+    }
+  ],
+  "incognito": "split"
+}

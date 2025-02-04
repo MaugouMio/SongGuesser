@@ -7,7 +7,7 @@ import discord
 from youtube_dl import youtube_dl
 from pydub import AudioSegment
 
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 # Suppress noise about console usage from errors
 youtube_dl.utils.bug_reports_message = lambda: ''
@@ -15,7 +15,7 @@ youtube_dl.utils.bug_reports_message = lambda: ''
 
 ytdl_format_options = {
 	'format': 'bestaudio/best',
-	'outtmpl': 'temp/main.%(ext)s',
+	'outtmpl': 'temp/main',
 	'restrictfilenames': True,
 	'noplaylist': True,
 	'nocheckcertificate': True,
@@ -52,33 +52,24 @@ class YTDLSource(discord.PCMVolumeTransformer):
 			# take first item from a playlist
 			data = data['entries'][0]
 			
-		song = AudioSegment.from_file("temp/main.m4a", "m4a")
+		song = AudioSegment.from_file("temp/main", "m4a")
 
 		filename = data['url'] if stream else ytdl.prepare_filename(data)
 		return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
 
 
-class Music(commands.Cog):
+class SongGuesser(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
 
 	@commands.command()
-	async def join(self, ctx, *, channel: discord.VoiceChannel):
-		"""Joins a voice channel"""
-
+	async def start(self, ctx, *, channel: discord.VoiceChannel):
+		"""Starts a new game"""
+		print("A")
 		if ctx.voice_client is not None:
 			return await ctx.voice_client.move_to(channel)
 
 		await channel.connect()
-
-	@commands.command()
-	async def play(self, ctx, *, query):
-		"""Plays a file from the local filesystem"""
-
-		source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(query))
-		ctx.voice_client.play(source, after=lambda e: print(f'Player error: {e}') if e else None)
-
-		await ctx.send(f'Now playing: {query}')
 
 	@commands.command()
 	async def yt(self, ctx, *, url):
@@ -86,16 +77,6 @@ class Music(commands.Cog):
 
 		async with ctx.typing():
 			player = await YTDLSource.from_url(url, loop=self.bot.loop)
-			ctx.voice_client.play(player, after=lambda e: print(f'Player error: {e}') if e else None)
-
-		await ctx.send(f'Now playing: {player.title}')
-
-	@commands.command()
-	async def stream(self, ctx, *, url):
-		"""Streams from a url (same as yt, but doesn't predownload)"""
-
-		async with ctx.typing():
-			player = await YTDLSource.from_url(url, loop=self.bot.loop, stream=True)
 			ctx.voice_client.play(player, after=lambda e: print(f'Player error: {e}') if e else None)
 
 		await ctx.send(f'Now playing: {player.title}')
@@ -116,9 +97,7 @@ class Music(commands.Cog):
 
 		await ctx.voice_client.disconnect()
 
-	@play.before_invoke
 	@yt.before_invoke
-	@stream.before_invoke
 	async def ensure_voice(self, ctx):
 		if ctx.voice_client is None:
 			if ctx.author.voice:
@@ -148,7 +127,7 @@ intents.message_content = True
 
 bot = commands.Bot(
 	command_prefix=commands.when_mentioned_or("!"),
-	description='猜歌遊戲執行者',
+	description='Song Guesser',
 	intents=intents,
 )
 
@@ -160,11 +139,19 @@ with open("BOT_TOKEN", "r") as f:
 async def on_ready():
 	print(f'Logged in as {bot.user} (ID: {bot.user.id})')
 	print('------')
+	auto_leave_voice_channel.start()
+	
+@tasks.loop(seconds=30)
+async def auto_leave_voice_channel():
+	for guild in bot.guilds:
+		for vc in guild.voice_channels:
+			if len(vc.members) == 1 and bot.user in vc.members:
+				await vc.guild.voice_client.disconnect()
 
 
 async def main():
 	async with bot:
-		await bot.add_cog(Music(bot))
+		await bot.add_cog(SongGuesser(bot))
 		await bot.start(BOT_TOKEN)
 
 

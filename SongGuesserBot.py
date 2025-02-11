@@ -58,18 +58,29 @@ class YTDLSource(discord.PCMVolumeTransformer):
 		return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
 
 
+
+class GameStep:
+	IDLE = 0
+	PLAYING = 1
+
+class GameData:
+	def __init__(self):
+		self.step = GameStep.IDLE
+	
 class SongGuesser(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
+		self.games = dict()  # <Guild, GameData>
 
 	@commands.command()
-	async def start(self, ctx, *, channel: discord.VoiceChannel):
+	async def start(self, ctx):
 		"""Starts a new game"""
-		print("A")
-		if ctx.voice_client is not None:
-			return await ctx.voice_client.move_to(channel)
-
-		await channel.connect()
+		game = self.games.get(ctx.guild)
+		if game.step != GameStep.IDLE:
+			await ctx.send("當前伺服器已經有遊戲正在進行中")
+			return
+		
+		game.step = GameStep.PLAYING
 
 	@commands.command()
 	async def yt(self, ctx, *, url):
@@ -97,6 +108,7 @@ class SongGuesser(commands.Cog):
 
 		await ctx.voice_client.disconnect()
 
+	@start.before_invoke
 	@yt.before_invoke
 	async def ensure_voice(self, ctx):
 		if ctx.voice_client is None:

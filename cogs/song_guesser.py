@@ -59,8 +59,9 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
 
 class GameStep:
-	IDLE = 0
-	PLAYING = 1
+	IDLE = 0		# 物件初始狀態
+	WAITING = 1		# 遊戲剛開始還沒出題，或是已經結算完的狀態
+	PLAYING = 2		# 出完題目正在等待玩家回答的狀態
 
 class GameData:
 	def __init__(self):
@@ -70,7 +71,8 @@ class GameData:
 	
 	@staticmethod
 	def is_valid_question_set(question_set):
-		
+		# TODO: 題目格式的檢查
+		return True
 	
 class SongGuesser(commands.Cog):
 	def __init__(self, bot):
@@ -112,12 +114,11 @@ class SongGuesser(commands.Cog):
 			await voice_client.move_to(interaction.user.voice.channel)
 			
 		game.channel = interaction.user.voice.channel
-		game.step = GameStep.PLAYING
+		game.step = GameStep.WAITING
 		
 		title = game.question_set["title"]
 		await interaction.response.send_message(f"{interaction.user.name} 開始了 [{title}] 的猜歌遊戲\n加入 <#{game.channel.id}> 頻道一起遊玩吧！")
 		
-
 	# @app_commands.command()
 	# async def yt(self, interaction, *, url: str):
 		# """播放 youtube 音樂"""
@@ -149,6 +150,75 @@ class SongGuesser(commands.Cog):
 		await interaction.response.send_message(f"已中斷在 <#{game.channel.id}> 舉行的猜歌遊戲")
 		del self.games[interaction.guild.id]
 			
+	# =========================================================================================
+	
+	async def game_command_pre_check(self, interaction):
+		if interaction.guild.id not in self.games:
+			await interaction.response.send_message("當前伺服器沒有舉行中的猜歌遊戲", ephemeral=True)
+			return False
+		
+		game = self.games[interaction.guild.id]
+		if not interaction.user.voice or interaction.user.voice.channel != game.channel:
+			await interaction.response.send_message(f"你必須在遊戲進行中的 <#{game.channel.id}> 頻道才能使用遊戲指令", ephemeral=True)
+			return False
+		
+		return True
+	
+	@app_commands.command()
+	async def question(self, interaction):
+		"""[遊戲指令] 從題庫中隨機出題"""
+		
+		pre_check = await self.game_command_pre_check(interaction)
+		if not pre_check:
+			return
+			
+		await interaction.response.send_message("即將開始第 N 題")
+	
+	@app_commands.command()
+	async def hint(self, interaction):
+		"""[遊戲指令] 播放當前題目下一個音樂片段"""
+		
+		pre_check = await self.game_command_pre_check(interaction)
+		if not pre_check:
+			return
+			
+		await interaction.response.send_message("正在播放片段 X")
+	
+	@app_commands.command()
+	async def guess(self, interaction, answer: str):
+		"""[遊戲指令] 猜測當前題目的答案"""
+		
+		pre_check = await self.game_command_pre_check(interaction)
+		if not pre_check:
+			return
+			
+		# TODO: send_modal 讓他看相關的選項
+		await interaction.response.send_message("X 猜了 Y")
+	
+	@app_commands.command()
+	async def settle(self, interaction):
+		"""[遊戲指令] 中止當前的遊戲並進行結算"""
+		
+		pre_check = await self.game_command_pre_check(interaction)
+		if not pre_check:
+			return
+			
+		game = self.games[interaction.guild.id]
+		game.step = GameStep.WAITING
+		await interaction.response.send_message("結算結果：")
+	
+	@app_commands.command()
+	async def restart(self, interaction):
+		"""[遊戲指令] 以目前的題庫重新進行一輪遊戲"""
+		
+		pre_check = await self.game_command_pre_check(interaction)
+		if not pre_check:
+			return
+			
+		title = game.question_set["title"]
+		await interaction.response.send_message(f"重新開始了一輪 [{title}] 的猜歌遊戲！\n即將開始第 1 題的播放")
+		# TODO: 重置遊戲進度，倒數 3 秒開始播放第一題
+	
 	# =========================================================================================
 
 	async def check_auto_stop(self):

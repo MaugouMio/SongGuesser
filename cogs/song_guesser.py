@@ -68,28 +68,41 @@ class GameData:
 		self.channel = None
 		self.question_set = None
 	
+	@staticmethod
+	def is_valid_question_set(question_set):
+		
+	
 class SongGuesser(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
 		self.games = dict()	 # <Guild, GameData>
 
 	@app_commands.command()
-	async def init(self, interaction):
-		"""在當前語音頻道舉行猜歌遊戲"""
-		
-		if not interaction.user.voice:
-			await interaction.response.send_message("你必須在一個語音頻道中才能執行這個指令", ephemeral=True)
-			return
+	async def start(self, interaction, attachment: discord.Attachment):
+		"""上傳題庫，開始一場猜歌遊戲"""
 			
 		if interaction.guild.id not in self.games:
 			self.games[interaction.guild.id] = GameData()
 		game = self.games[interaction.guild.id]
-			
+		
 		if game.step != GameStep.IDLE:
 			await interaction.response.send_message(f"當前伺服器已在 <#{game.channel.id}> 進行遊戲，請先使用 /stop 指令中斷再試", ephemeral=True)
 			return
 		
-		game.channel = interaction.user.voice.channel
+		if not interaction.user.voice:
+			await interaction.response.send_message(f"你必須在語音頻道內才能開啟一場遊戲", ephemeral=True)
+			return
+			
+		try:
+			data = await attachment.read()
+			question_set = json.loads(data.decode("utf8"))
+			if not GameData.is_valid_question_set(question_set):
+				await interaction.response.send_message(f"題庫檔案 {attachment.filename} 的格式不符，無法開始遊戲", ephemeral=True)
+				return
+			game.question_set = question_set
+		except:
+			await interaction.response.send_message(f"上傳題庫檔案 {attachment.filename} 時發生錯誤，請檢查檔案內容是否正確", ephemeral=True)
+			
 		voice_client = interaction.guild.voice_client
 		if voice_client is None:
 			await interaction.user.voice.channel.connect()
@@ -97,27 +110,13 @@ class SongGuesser(commands.Cog):
 			if voice_client.is_playing():
 				voice_client.stop()
 			await voice_client.move_to(interaction.user.voice.channel)
-		
-		await interaction.response.send_message(f"猜歌遊戲在 <#{game.channel.id}> 舉行，請先上傳題庫檔案！")
-
-	@app_commands.command()
-	async def start(self, interaction):
-		"""開始一場猜歌遊戲"""
 			
-		if interaction.guild.id not in self.games:
-			await interaction.response.send_message("請先輸入 init 指令舉行遊戲", ephemeral=True)
-			return
-			
-		game = self.games[interaction.guild.id]
-		if not interaction.user.voice or interaction.user.voice.channel != game.channel:
-			await interaction.response.send_message(f"請先加入舉行遊戲的 <#{game.channel.id}> 頻道", ephemeral=True)
-			return
-			
-		if game.step != GameStep.IDLE:
-			await interaction.response.send_message("遊戲正在進行中，請直接使用遊戲相關指令參與！", ephemeral=True)
-			return
-		
+		game.channel = interaction.user.voice.channel
 		game.step = GameStep.PLAYING
+		
+		title = game.question_set["title"]
+		await interaction.response.send_message(f"{interaction.user.name} 開始了 [{title}] 的猜歌遊戲\n加入 <#{game.channel.id}> 頻道一起遊玩吧！")
+		
 
 	# @app_commands.command()
 	# async def yt(self, interaction, *, url: str):
@@ -133,14 +132,6 @@ class SongGuesser(commands.Cog):
 		# voice_client.play(player, after=lambda e: print(f'Player error: {e}') if e else None)
 
 		# await interaction.response.send_message(f'Now playing: {player.title}', ephemeral=True)
-
-	async def check_auto_stop(self):
-		for guild in self.bot.guilds:
-			for vc in guild.voice_channels:
-				if len(vc.members) == 1 and self.bot.user in vc.members:
-					await vc.guild.voice_client.disconnect()
-					if guild.id in self.games:
-						del self.games[guild.id]
 		
 	@app_commands.command()
 	async def stop(self, interaction):
@@ -157,26 +148,16 @@ class SongGuesser(commands.Cog):
 		game = self.games[interaction.guild.id]
 		await interaction.response.send_message(f"已中斷在 <#{game.channel.id}> 舉行的猜歌遊戲")
 		del self.games[interaction.guild.id]
-	
-	@app_commands.command()
-	async def upload(self, interaction, attachment: discord.Attachment):
-		"""上傳一份題庫檔案"""
-		
-		if interaction.guild.id not in self.games:
-			await interaction.response.send_message("你必須先開始一場遊戲")
-			return
-		
-		game = self.games[interaction.guild.id]
-		if game.step != GameStep.IDLE:
-			await interaction.response.send_message("遊戲正在進行中，只有等待階段可以上傳題庫")
-			return
 			
-		if attachment.filename.endswith('.json'):
-			data = await attachment.read()
-			game.question_set = json.loads(data.decode("utf8"))
-			await interaction.response.send_message(f'已成功上傳題庫 {attachment.filename}')
-		
 	# =========================================================================================
+
+	async def check_auto_stop(self):
+		for guild in self.bot.guilds:
+			for vc in guild.voice_channels:
+				if len(vc.members) == 1 and self.bot.user in vc.members:
+					await vc.guild.voice_client.disconnect()
+					if guild.id in self.games:
+						del self.games[guild.id]
 		
 	@commands.command()
 	async def sync(self, ctx) -> None:

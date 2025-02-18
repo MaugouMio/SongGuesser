@@ -79,7 +79,7 @@ class SongGuesser(commands.Cog):
 		self.bot = bot
 		self.games = dict()	 # <Guild, GameData>
 
-	@app_commands.command()
+	@app_commands.command(name = "開始遊戲")
 	async def start(self, interaction, attachment: discord.Attachment):
 		"""上傳題庫，開始一場猜歌遊戲"""
 			
@@ -119,6 +119,8 @@ class SongGuesser(commands.Cog):
 		title = game.question_set["title"]
 		await interaction.response.send_message(f"{interaction.user.name} 開始了 [{title}] 的猜歌遊戲\n加入 <#{game.channel.id}> 頻道一起遊玩吧！")
 		
+		# TODO: 倒數後直接開始第一題
+		
 	# @app_commands.command()
 	# async def yt(self, interaction, *, url: str):
 		# """播放 youtube 音樂"""
@@ -134,7 +136,7 @@ class SongGuesser(commands.Cog):
 
 		# await interaction.response.send_message(f'Now playing: {player.title}', ephemeral=True)
 		
-	@app_commands.command()
+	@app_commands.command(name = "結束遊戲")
 	async def stop(self, interaction):
 		"""把機器人驅逐出去"""
 		
@@ -164,7 +166,7 @@ class SongGuesser(commands.Cog):
 		
 		return True
 	
-	@app_commands.command()
+	@app_commands.command(name = "下一題")
 	async def question(self, interaction):
 		"""[遊戲指令] 從題庫中隨機出題"""
 		
@@ -174,7 +176,7 @@ class SongGuesser(commands.Cog):
 			
 		await interaction.response.send_message("即將開始第 N 題")
 	
-	@app_commands.command()
+	@app_commands.command(name = "更多片段")
 	async def hint(self, interaction):
 		"""[遊戲指令] 播放當前題目下一個音樂片段"""
 		
@@ -184,7 +186,7 @@ class SongGuesser(commands.Cog):
 			
 		await interaction.response.send_message("正在播放片段 X")
 	
-	@app_commands.command()
+	@app_commands.command(name = "猜")
 	async def guess(self, interaction, answer: str):
 		"""[遊戲指令] 猜測當前題目的答案"""
 		
@@ -195,7 +197,7 @@ class SongGuesser(commands.Cog):
 		# TODO: send_modal 讓他看相關的選項
 		await interaction.response.send_message("X 猜了 Y")
 	
-	@app_commands.command()
+	@app_commands.command(name = "結算")
 	async def settle(self, interaction):
 		"""[遊戲指令] 中止當前的遊戲並進行結算"""
 		
@@ -207,7 +209,7 @@ class SongGuesser(commands.Cog):
 		game.step = GameStep.WAITING
 		await interaction.response.send_message("結算結果：")
 	
-	@app_commands.command()
+	@app_commands.command(name = "重新開始")
 	async def restart(self, interaction):
 		"""[遊戲指令] 以目前的題庫重新進行一輪遊戲"""
 		

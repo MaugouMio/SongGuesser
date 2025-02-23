@@ -80,22 +80,38 @@ class GameStep:
 	PLAYING = 2		# 出完題目正在等待玩家回答的狀態
 
 class GameData:
-	def __init__(self, guild_id, text_channel):
+	def __init__(self, guild_id):
 		self.guild_id = guild_id
-		self.text_channel = text_channel
 		
-		self.step = GameStep.IDLE
 		self.channel = None
+		self.text_channel = None
+		self.voice_client = None
+		
+		# settings
+		self.one_guess_per_part = True
+		
+		# game progress
+		self.step = GameStep.IDLE
 		self.question_set = None
 		self.current_question_idx = 0
+		
+		# question progress
 		self.current_question_part = 0
+		self.guessed_players = set()
+		self.answer_guessed = False
 	
 	def reset_progress(self):
 		self.current_question_idx = 0
-		self.current_question_part = 0
 		if self.question_set:
 			random.shuffle(self.question_set["questions"])
+			
+		self.reset_question()
 	
+	def reset_question(self):
+		self.current_question_part = 0
+		self.guessed_players.clear()
+		self.answer_guessed = None
+		
 	@staticmethod
 	def is_valid_question_set(question_set):
 		# TODO: 題目格式的檢查
@@ -112,6 +128,9 @@ class SongGuesser(commands.Cog):
 		asyncio.run(message.edit(f"第 {game.current_question_idx + 1} 題片段 {game.current_question_part + 1} 播放完畢，快用 `/猜` 指令搶答吧！"))
 		
 	async def play_part(self, game):
+		if game.voice_client and game.voice_client.is_playing():
+			game.voice_client.stop()
+			
 		source = await YTDLSource.get_part(game.current_question_part, game.guild_id)
 		message = await game.text_channel.send(f"正在播放第 {game.current_question_idx + 1} 題片段 {game.current_question_part + 1}，使用 `/猜` 指令進行搶答")
 		await asyncio.sleep(2)
@@ -120,7 +139,7 @@ class SongGuesser(commands.Cog):
 	async def init_question(self, game):
 		idx = game.current_question_idx
 		await YTDLSource.load_from_url(game.question_set["questions"][idx]["url"], game.question_set["questions"][idx]["parts"], game.guild_id, loop=self.bot.loop)
-		game.current_question_part = 0
+		game.reset_question()
 		await self.play_part()
 	
 	# =========================================================================================
@@ -130,8 +149,7 @@ class SongGuesser(commands.Cog):
 		"""上傳題庫，開始一場猜歌遊戲"""
 		
 		if interaction.guild.id not in self.games:
-			text_channel = self.bot.get_channel(interaction.channel.id)
-			self.games[interaction.guild.id] = GameData(interaction.guild.id, text_channel)
+			self.games[interaction.guild.id] = GameData(interaction.guild.id)
 		game = self.games[interaction.guild.id]
 		
 		if game.step != GameStep.IDLE:
@@ -160,7 +178,11 @@ class SongGuesser(commands.Cog):
 				voice_client.stop()
 			await voice_client.move_to(interaction.user.voice.channel)
 			
+		text_channel = self.bot.get_channel(interaction.channel.id)
+		
 		game.channel = interaction.user.voice.channel
+		game.text_channel = text_channel
+		game.voice_client = voice_client
 		game.step = GameStep.WAITING
 		
 		title = game.question_set["title"]
@@ -174,6 +196,7 @@ class SongGuesser(commands.Cog):
 		await asyncio.sleep(1)
 		await message.edit(content=f"遊戲即將開始...")
 		
+		game.step = GameStep.PLAYING
 		game.reset_progress()
 		await self.init_question(game)
 		
@@ -210,58 +233,94 @@ class SongGuesser(commands.Cog):
 		
 	# =========================================================================================
 	
-	async def game_command_pre_check(self, interaction):
+	async def game_command_pre_check(self, interaction, *, ignore_step = False):
 		if interaction.guild.id not in self.games:
 			await interaction.response.send_message("當前伺服器沒有舉行中的猜歌遊戲", ephemeral=True)
-			return False
+			return None
 		
 		game = self.games[interaction.guild.id]
+		if game.step != GameStep.PLAYING:
+			await interaction.response.send_message("遊戲並未進行中，", ephemeral=True)
+			return None
+			
 		if not interaction.user.voice or interaction.user.voice.channel != game.channel:
 			await interaction.response.send_message(f"你必須在遊戲進行中的 <#{game.channel.id}> 頻道才能使用遊戲指令", ephemeral=True)
-			return False
+			return None
 		
-		return True
+		return game
 	
 	@app_commands.command(name = "下一題")
 	async def question(self, interaction):
 		"""[遊戲指令] 從題庫中隨機出題"""
 		
-		pre_check = await self.game_command_pre_check(interaction)
-		if not pre_check:
+		game = await self.game_command_pre_check(interaction)
+		if not game:
+			return
+		
+		if not game.answer_guessed:
+			# TODO: 沒有人答出來過要跳確認訊息
 			return
 			
-		await interaction.response.send_message("即將開始第 N 題")
+		if game.current_question_idx + 1 >= len(game.question_set["questions"]):
+			# TODO: 進行結算
+			return
+		
+		game.current_question_idx += 1
+		await self.init_question(game)
 	
 	@app_commands.command(name = "更多片段")
 	async def hint(self, interaction):
 		"""[遊戲指令] 播放當前題目下一個音樂片段"""
 		
-		pre_check = await self.game_command_pre_check(interaction)
-		if not pre_check:
+		game = await self.game_command_pre_check(interaction)
+		if not game:
 			return
 			
-		await interaction.response.send_message("正在播放片段 X")
+		if game.current_question_part + 1 >= len(game.question_set["questions"][game.current_question_idx]["parts"]):
+			await interaction.response.send_message("已經沒有更多歌曲片段了！", ephemeral=True)
+			return
+			
+		game.current_question_part += 1
+		await self.play_part(game)
 	
 	@app_commands.command(name = "猜")
 	async def guess(self, interaction, answer: str):
 		"""[遊戲指令] 猜測當前題目的答案"""
 		
-		pre_check = await self.game_command_pre_check(interaction)
-		if not pre_check:
+		game = await self.game_command_pre_check(interaction)
+		if not game:
+			return
+		
+		if game.answer_guessed:
+			await interaction.response.send_message("已經有人猜出這題答案了，下一題再加油吧！", ephemeral=True)
+			return
+		
+		if game.one_guess_per_part and interaction.user in game.guessed_players:
+			await interaction.response.send_message("你在這個片段已經猜過了，請等下個片段播放後再試", ephemeral=True)
 			return
 			
-		# TODO: send_modal 讓他看相關的選項
-		await interaction.response.send_message("X 猜了 Y")
+		game.guessed_players.add(interaction.user)
+		
+		if answer not in game.question_set["candidates"]:
+			# TODO: send_modal 讓他看相關的選項
+			return
+			
+		idx = game.current_question_idx
+		if answer in game.question_set["questions"][idx]["candidates"]:
+			await interaction.response.send_message(f"{interaction.user.name} 猜：{answer}\n成功獲得一分！\n{game.question_set["questions"][idx]["url"]}")
+			game.answer_guessed = True
+			# TODO: 計分
+		else
+			await interaction.response.send_message(f"{interaction.user.name} 猜：{answer}")
 	
 	@app_commands.command(name = "結算")
 	async def settle(self, interaction):
 		"""[遊戲指令] 中止當前的遊戲並進行結算"""
 		
-		pre_check = await self.game_command_pre_check(interaction)
-		if not pre_check:
+		game = await self.game_command_pre_check(interaction)
+		if not game:
 			return
 			
-		game = self.games[interaction.guild.id]
 		game.step = GameStep.WAITING
 		await interaction.response.send_message("結算結果：")
 	
@@ -269,8 +328,8 @@ class SongGuesser(commands.Cog):
 	async def restart(self, interaction):
 		"""[遊戲指令] 以目前的題庫重新進行一輪遊戲"""
 		
-		pre_check = await self.game_command_pre_check(interaction)
-		if not pre_check:
+		game = await self.game_command_pre_check(interaction, ignore_step=True)
+		if not game:
 			return
 			
 		title = game.question_set["title"]

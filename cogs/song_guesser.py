@@ -88,7 +88,7 @@ class GameData:
 		self.voice_client = None
 		
 		# settings
-		self.one_guess_per_part = True
+		self.one_guess_per_part = False
 		
 		# game progress
 		self.step = GameStep.IDLE
@@ -141,6 +141,26 @@ class SongGuesser(commands.Cog):
 		await YTDLSource.load_from_url(game.question_set["questions"][idx]["url"], game.question_set["questions"][idx]["parts"], game.guild_id, loop=self.bot.loop)
 		game.reset_question()
 		await self.play_part()
+		
+	async def next_question(self, interaction, current_question_idx, button = None):
+		game = await self.game_command_pre_check(interaction)
+		if not game:
+			return
+		
+		if button:
+			button.disabled = True
+			interaction.response.edit_message(view=button.view)
+		
+		# 使用者按按鈕的時候，題目可能已經更換了
+		if game.current_question_idx != current_question_idx:
+			return
+			
+		if game.current_question_idx + 1 >= len(game.question_set["questions"]):
+			# TODO: 進行結算
+			return
+			
+		game.current_question_idx += 1
+		await self.init_question(game)
 	
 	# =========================================================================================
 
@@ -257,16 +277,17 @@ class SongGuesser(commands.Cog):
 		if not game:
 			return
 		
+		idx = game.current_question_idx
 		if not game.answer_guessed:
-			# TODO: 沒有人答出來過要跳確認訊息
+			# 沒有人答出來過要跳確認訊息
+			view = discord.ui.View(timeout = 30)
+			button = discord.ui.Button(label = "確定")
+			button.callback = lambda interaction, idx=idx, button=button: self.next_question(interaction, idx, button)
+			view.add_item(button)
+			await interaction.response.send_message("還沒有人猜出答案，確定要跳過嗎？", view = view)
 			return
 			
-		if game.current_question_idx + 1 >= len(game.question_set["questions"]):
-			# TODO: 進行結算
-			return
-		
-		game.current_question_idx += 1
-		await self.init_question(game)
+		await self.next_question(interaction, idx)
 	
 	@app_commands.command(name = "更多片段")
 	async def hint(self, interaction):

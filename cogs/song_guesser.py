@@ -1,6 +1,6 @@
 # This example requires the 'message_content' privileged intent to function.
 
-import asyncio
+import asyncio, functools
 import json, os, random
 
 import discord
@@ -94,6 +94,7 @@ class GameData:
 		self.step = GameStep.IDLE
 		self.question_set = None
 		self.current_question_idx = 0
+		self.player_scores = dict()
 		
 		# question progress
 		self.current_question_part = 0
@@ -104,6 +105,7 @@ class GameData:
 		self.current_question_idx = 0
 		if self.question_set:
 			random.shuffle(self.question_set["questions"])
+		self.player_scores.clear()
 			
 		self.reset_question()
 	
@@ -142,7 +144,7 @@ class SongGuesser(commands.Cog):
 		game.reset_question()
 		await self.play_part()
 		
-	async def next_question(self, interaction, current_question_idx, button = None):
+	async def next_question(self, interaction, current_question_idx = -1, button = None):
 		game = await self.game_command_pre_check(interaction)
 		if not game:
 			return
@@ -156,11 +158,30 @@ class SongGuesser(commands.Cog):
 			return
 			
 		if game.current_question_idx + 1 >= len(game.question_set["questions"]):
-			# TODO: 進行結算
+			await self.settle_game(interaction)
 			return
 			
 		game.current_question_idx += 1
 		await self.init_question(game)
+		
+	async def settle_game(self, interaction, button = None):
+		game = await self.game_command_pre_check(interaction)
+		if not game:
+			return
+		
+		if button:
+			button.disabled = True
+			interaction.response.edit_message(view=button.view)
+			
+		game.step = GameStep.WAITING
+		
+		if len(game.player_scores) == 0:
+			await interaction.response.send_message("沒有玩家有分數，遊戲結束！")
+			return
+			
+		result = sorted(game.player_scores.items(), key=lambda item: item[1], reverse=True)
+		result_text = [ f"{i}. {item[0].name} - {item[1]} 分" for i, item in enumerate(result) ]
+		await interaction.response.send_message("### 遊戲排行：\n" + "\n".join(result_text))
 	
 	# =========================================================================================
 
@@ -282,7 +303,7 @@ class SongGuesser(commands.Cog):
 			# 沒有人答出來過要跳確認訊息
 			view = discord.ui.View(timeout = 30)
 			button = discord.ui.Button(label = "確定")
-			button.callback = lambda interaction, idx=idx, button=button: self.next_question(interaction, idx, button)
+			button.callback = functools.partial(self.next_question, current_question_idx=idx, button=button)
 			view.add_item(button)
 			await interaction.response.send_message("還沒有人猜出答案，確定要跳過嗎？", view = view)
 			return
@@ -330,7 +351,11 @@ class SongGuesser(commands.Cog):
 		if answer in game.question_set["questions"][idx]["candidates"]:
 			await interaction.response.send_message(f"{interaction.user.name} 猜：{answer}\n成功獲得一分！\n{game.question_set["questions"][idx]["url"]}")
 			game.answer_guessed = True
-			# TODO: 計分
+			
+			if interaction.user not in game.player_scores:
+				game.player_scores[interaction.user] = 1
+			else:
+				game.player_scores[interaction.user] += 1
 		else
 			await interaction.response.send_message(f"{interaction.user.name} 猜：{answer}")
 	
@@ -341,9 +366,17 @@ class SongGuesser(commands.Cog):
 		game = await self.game_command_pre_check(interaction)
 		if not game:
 			return
+		
+		if not game.answer_guessed:
+			# 當前題目還沒有人猜到要跳確認訊息
+			view = discord.ui.View(timeout = 30)
+			button = discord.ui.Button(label = "確定")
+			button.callback = functools.partial(self.settle_game, button=button)
+			view.add_item(button)
+			await interaction.response.send_message("現在進行中的題目還沒有人猜出來，確定要直接結算嗎？", view = view)
+			return
 			
-		game.step = GameStep.WAITING
-		await interaction.response.send_message("結算結果：")
+		await self.settle_game(interaction)
 	
 	@app_commands.command(name = "重新開始")
 	async def restart(self, interaction):

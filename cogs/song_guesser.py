@@ -115,8 +115,84 @@ class GameData:
 		self.answer_guessed = None
 		
 	@staticmethod
-	def is_valid_question_set(question_set):
-		# TODO: 題目格式的檢查
+	def initialize_question_set(question_set):
+		'''
+		{
+			"title": str,
+			"questions":
+			[
+				{
+					"url": str,
+					"parts":
+					[
+						[ int, int ]	# [ start_time(ms), end_time(ms) ]
+					],
+					"candidates": [ str ]	# valid answers
+				}
+			],
+			"misleadings": [ str ]	# misleading answers (can be empty list)
+		}
+		'''
+		
+		if "title" not in question_set:
+			return False
+		if "questions" not in question_set:
+			return False
+		if type(question_set["questions"]) is not list:
+			return False
+		if len(question_set["questions"]) == 0:
+			return False
+		for question in question_set["questions"]:
+			if type(question) is not dict:
+				return False
+			if "url" not in question:
+				return False
+			if type(question["url"]) is not str:
+				return False
+			if "parts" not in question:
+				return False
+			if type(question["parts"]) is not list:
+				return False
+			if len(question["parts"]) == 0:
+				return False
+			for part in question["parts"]:
+				if type(part) is not list:
+					return False
+				if len(part) != 2:
+					return False
+				for i in range(2):
+					if type(part[i]) is not int:
+						return False
+			if "candidates" not in question:
+				return False
+			if type(question["candidates"]) is not list:
+				return False
+			if len(question["candidates"]) == 0:
+				return False
+			for candidate in question["candidates"]:
+				if type(candidate) is not str:
+					return False
+				if len(candidate) == 0:
+					return False
+		if "misleadings" not in question_set:
+			return False
+		if type(question_set["misleadings"]) is not list:
+			return False
+		for option in question_set["misleadings"]:
+			if type(option) is not str:
+				return False
+			if len(option) == 0:
+				return False
+		
+		# generate candidate answer set
+		candidate_set = set()
+		for option in question_set["misleadings"]:
+			candidate_set.add(option)
+		for question in question_set["questions"]:
+			for candidate in question["candidates"]:
+				candidate_set.add(candidate)
+		question_set["candidates"] = candidate_set
+		
 		return True
 	
 class SongGuesser(commands.Cog):
@@ -204,7 +280,7 @@ class SongGuesser(commands.Cog):
 		try:
 			data = await attachment.read()
 			question_set = json.loads(data.decode("utf8"))
-			if not GameData.is_valid_question_set(question_set):
+			if not GameData.initialize_question_set(question_set):
 				await interaction.response.send_message(f"題庫檔案 {attachment.filename} 的格式不符，無法開始遊戲", ephemeral=True)
 				return
 			game.question_set = question_set

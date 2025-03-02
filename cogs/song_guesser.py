@@ -344,19 +344,39 @@ class SongGuesser(commands.Cog):
 		game.guessed_players.add(interaction.user)
 		
 		if answer not in game.question_set["candidates"]:
-			# TODO: send_modal 讓他看相關的選項
+			# 讓他看相關的選項
+			related_list = []
+			tokens = answer.split()
+			over_10_candidates = False
+			for candidate in game.question_set["candidates"]:
+				if any(candidate.find(token) >= 0 for token in tokens):
+					if len(related_list) >= 10:
+						over_10_candidates = True
+						break
+					related_list.append(candidate)
+			
+			if len(related_list) == 0:
+				await interaction.response.send_message("沒有任何符合或相似的選項，建議使用更廣泛的關鍵字", ephemeral=True)
+			else:
+				hint_text = "沒有符合的選項，以下是相關的選項列表"
+				for option in related_list:
+					hint_text += f"\n- {option}"
+				if over_10_candidates:
+					hint_text += "\n還有更多關聯選項，建議使用更精確的關鍵字"
+				await interaction.response.send_message(hint_text, ephemeral=True)
 			return
 			
 		idx = game.current_question_idx
 		if answer in game.question_set["questions"][idx]["candidates"]:
-			await interaction.response.send_message(f"{interaction.user.name} 猜：{answer}\n成功獲得一分！\n{game.question_set["questions"][idx]["url"]}")
+			url = game.question_set["questions"][idx]["url"]
+			await interaction.response.send_message(f"{interaction.user.name} 猜：{answer}\n成功獲得一分！\n{url}")
 			game.answer_guessed = True
 			
 			if interaction.user not in game.player_scores:
 				game.player_scores[interaction.user] = 1
 			else:
 				game.player_scores[interaction.user] += 1
-		else
+		else:
 			await interaction.response.send_message(f"{interaction.user.name} 猜：{answer}")
 	
 	@app_commands.command(name = "結算")

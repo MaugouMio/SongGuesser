@@ -1,5 +1,6 @@
 import sys
-from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QSlider, QPushButton, QLabel
+from PyQt6 import uic
+from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QSlider, QPushButton, QLabel
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
 from PyQt6.QtCore import Qt, QUrl
 
@@ -13,50 +14,46 @@ class Slider(QSlider):
 			self.sliderMoved.emit(value)
 		return super().mousePressEvent(e)
 
-class QuestionEditor(QWidget):
+class QuestionEditor(QMainWindow):
 	def __init__(self):
 		super().__init__()
 		
-		self.dragPositionWasPlaying = False
+		uic.loadUi("main.ui", self)
 
+		self.dragPositionWasPlaying = False
 		self.initUI()
 
 	def initUI(self):
-		layout = QVBoxLayout()
-
 		self.mediaPlayer = QMediaPlayer()
 		self.audioOutput = QAudioOutput()
 		self.mediaPlayer.setAudioOutput(self.audioOutput)
 
 		self.playButton = QPushButton("Play")
 		self.playButton.clicked.connect(self.playPause)
-		layout.addWidget(self.playButton)
+		self.frame_audio_player.addWidget(self.playButton)
 
 		self.positionSlider = Slider(Qt.Orientation.Horizontal)
 		self.positionSlider.setRange(0, 0)
 		self.positionSlider.sliderPressed.connect(self.beginDragPosition)
 		self.positionSlider.sliderMoved.connect(self.setPosition)
 		self.positionSlider.sliderReleased.connect(self.endDragPosition)
-		layout.addWidget(self.positionSlider)
+		self.frame_audio_player.addWidget(self.positionSlider)
 
 		self.timeLabel = QLabel("0:00.000 / 0:00.000")
-		layout.addWidget(self.timeLabel)
-
-		self.setLayout(layout)
+		self.frame_audio_player.addWidget(self.timeLabel)
 
 		self.mediaPlayer.positionChanged.connect(self.positionChanged)
 		self.mediaPlayer.durationChanged.connect(self.durationChanged)
 
 		self.setWindowTitle("猜歌機器人題庫編輯器")
-		self.resize(300, 100)
 		self.show()
 
 	def playPause(self):
-		if self.mediaPlayer.isPlaying():
+		if self.mediaPlayer.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
 			self.mediaPlayer.pause()
 			self.playButton.setText("Play")
 		else:
-			self.mediaPlayer.setSource(QUrl.fromLocalFile("temp/1247388511028514928/main.webm"))
+			self.mediaPlayer.setSource(QUrl.fromLocalFile("../temp/1247388511028514928/main.webm"))
 			self.mediaPlayer.play()
 			self.playButton.setText("Pause")
 
@@ -69,7 +66,7 @@ class QuestionEditor(QWidget):
 		self.updateTimeLabel()
 	
 	def beginDragPosition(self):
-		self.dragPositionWasPlaying = self.mediaPlayer.isPlaying()
+		self.dragPositionWasPlaying = self.mediaPlayer.playbackState() == QMediaPlayer.PlaybackState.PlayingState
 		self.mediaPlayer.pause()
 
 	def setPosition(self, position):

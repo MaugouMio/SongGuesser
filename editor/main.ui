@@ -733,7 +733,7 @@
     <addaction name="action_new"/>
     <addaction name="action_load"/>
     <addaction name="action_save"/>
-    <addaction name="action_save_other"/>
+    <addaction name="action_save_as"/>
    </widget>
    <addaction name="menu"/>
   </widget>
@@ -753,7 +753,7 @@
     <string>儲存</string>
    </property>
   </action>
-  <action name="action_save_other">
+  <action name="action_save_as">
    <property name="text">
     <string>另存新檔</string>
    </property>

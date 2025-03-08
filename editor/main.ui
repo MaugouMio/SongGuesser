@@ -47,7 +47,7 @@
      <string>題庫名稱</string>
     </property>
    </widget>
-   <widget class="QLineEdit" name="lineEdit">
+   <widget class="QLineEdit" name="question_set_title">
     <property name="geometry">
      <rect>
       <x>80</x>
@@ -86,7 +86,7 @@
      <string>作者名稱</string>
     </property>
    </widget>
-   <widget class="QLineEdit" name="lineEdit_2">
+   <widget class="QLineEdit" name="question_set_author">
     <property name="geometry">
      <rect>
       <x>370</x>
@@ -137,7 +137,7 @@
      <property name="frameShadow">
       <enum>QFrame::Raised</enum>
      </property>
-     <widget class="QLabel" name="label_3">
+     <widget class="QLabel" name="question_list_title">
       <property name="geometry">
        <rect>
         <x>10</x>
@@ -173,7 +173,7 @@
       <property name="widgetResizable">
        <bool>true</bool>
       </property>
-      <widget class="QWidget" name="scrollAreaWidgetContents">
+      <widget class="QWidget" name="question_list_content">
        <property name="geometry">
         <rect>
          <x>0</x>
@@ -190,7 +190,7 @@
        </property>
       </widget>
      </widget>
-     <widget class="QPushButton" name="pushButton">
+     <widget class="QPushButton" name="add_question_btn">
       <property name="geometry">
        <rect>
         <x>90</x>
@@ -204,7 +204,7 @@
       </property>
      </widget>
     </widget>
-    <widget class="QLabel" name="label_4">
+    <widget class="QLabel" name="youtube_url">
      <property name="geometry">
       <rect>
        <x>280</x>
@@ -273,7 +273,7 @@
       <set>Qt::AlignCenter</set>
      </property>
     </widget>
-    <widget class="QLabel" name="label_5">
+    <widget class="QLabel" name="youtube_title">
      <property name="geometry">
       <rect>
        <x>280</x>
@@ -297,7 +297,7 @@
       <set>Qt::AlignCenter</set>
      </property>
     </widget>
-    <widget class="QLabel" name="label_6">
+    <widget class="QLabel" name="youtube_author">
      <property name="geometry">
       <rect>
        <x>280</x>
@@ -321,7 +321,7 @@
       <set>Qt::AlignCenter</set>
      </property>
     </widget>
-    <widget class="QPushButton" name="pushButton_2">
+    <widget class="QPushButton" name="add_part_btn">
      <property name="geometry">
       <rect>
        <x>280</x>
@@ -334,7 +334,7 @@
       <string>新增片段</string>
      </property>
     </widget>
-    <widget class="QPushButton" name="pushButton_3">
+    <widget class="QPushButton" name="delete_part_btn">
      <property name="geometry">
       <rect>
        <x>700</x>
@@ -347,20 +347,7 @@
       <string>刪除片段</string>
      </property>
     </widget>
-    <widget class="QPushButton" name="pushButton_5">
-     <property name="geometry">
-      <rect>
-       <x>450</x>
-       <y>490</y>
-       <width>75</width>
-       <height>23</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>向左移動</string>
-     </property>
-    </widget>
-    <widget class="QPushButton" name="pushButton_6">
+    <widget class="QPushButton" name="move_left_btn">
      <property name="geometry">
       <rect>
        <x>530</x>
@@ -370,10 +357,23 @@
       </rect>
      </property>
      <property name="text">
+      <string>向左移動</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="move_right_btn">
+     <property name="geometry">
+      <rect>
+       <x>610</x>
+       <y>490</y>
+       <width>75</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="text">
       <string>向右移動</string>
      </property>
     </widget>
-    <widget class="QPushButton" name="pushButton_7">
+    <widget class="QPushButton" name="set_begin_btn">
      <property name="geometry">
       <rect>
        <x>360</x>
@@ -386,7 +386,7 @@
       <string>設為開頭</string>
      </property>
     </widget>
-    <widget class="QPushButton" name="pushButton_8">
+    <widget class="QPushButton" name="set_end_btn">
      <property name="geometry">
       <rect>
        <x>610</x>
@@ -399,7 +399,7 @@
       <string>設為結尾</string>
      </property>
     </widget>
-    <widget class="QLabel" name="label_7">
+    <widget class="QLabel" name="begin_time_label">
      <property name="geometry">
       <rect>
        <x>360</x>
@@ -468,7 +468,7 @@
       <set>Qt::AlignCenter</set>
      </property>
     </widget>
-    <widget class="QLabel" name="label_8">
+    <widget class="QLabel" name="end_time_label">
      <property name="geometry">
       <rect>
        <x>610</x>
@@ -686,7 +686,7 @@
         <height>31</height>
        </rect>
       </property>
-      <layout class="QHBoxLayout" name="horizontalLayout">
+      <layout class="QHBoxLayout" name="part_list_layout">
        <property name="sizeConstraint">
         <enum>QLayout::SetDefaultConstraint</enum>
        </property>
@@ -730,30 +730,30 @@
     <property name="title">
      <string>檔案</string>
     </property>
-    <addaction name="action"/>
-    <addaction name="action_2"/>
-    <addaction name="action_3"/>
-    <addaction name="action_4"/>
+    <addaction name="action_new"/>
+    <addaction name="action_load"/>
+    <addaction name="action_save"/>
+    <addaction name="action_save_other"/>
    </widget>
    <addaction name="menu"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
-  <action name="action">
+  <action name="action_new">
    <property name="text">
     <string>新建</string>
    </property>
   </action>
-  <action name="action_2">
+  <action name="action_load">
    <property name="text">
     <string>載入</string>
    </property>
   </action>
-  <action name="action_3">
+  <action name="action_save">
    <property name="text">
     <string>儲存</string>
    </property>
   </action>
-  <action name="action_4">
+  <action name="action_save_other">
    <property name="text">
     <string>另存新檔</string>
    </property>

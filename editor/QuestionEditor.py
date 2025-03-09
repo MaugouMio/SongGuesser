@@ -1,6 +1,7 @@
 import sys, os, asyncio, json, re, pickle
 sys.path.insert(0, '..')
 
+import urllib
 from urllib.parse import urlparse
 from urllib.parse import parse_qs
 
@@ -10,7 +11,7 @@ from pydub import AudioSegment
 from PyQt6 import uic
 from PyQt6 import QtWidgets, QtGui
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
-from PyQt6.QtCore import Qt, QUrl
+from PyQt6.QtCore import Qt, QUrl, QSize
 
 WINDOW_TITLE = "猜歌機器人題庫編輯器"
 YOUTUBE_ERROR_MSG = "無法載入指定的 Youtube 影片"
@@ -29,6 +30,12 @@ QUESTION_OBJ_TEMPLATE = {
 }
 
 
+
+def getTimeText(t):
+	minutes = t // 60000
+	seconds = (t // 1000) % 60
+	ms = t % 1000
+	return f"{minutes}:{seconds:02d}.{ms:03d}"
 
 # clickable slider
 class Slider(QtWidgets.QSlider):
@@ -79,6 +86,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 
 		self.question_set = QUESTION_SET_TEMPLATE.copy()
 		self.question_vid_set = set()  # 紀錄當前題庫的影片 ID 列表
+		self.current_detail_vid = ""  # 當前右邊詳細資訊對應的題目影片 ID
 		self.file_path = None
 		self.dirty_flag = False
 		
@@ -100,9 +108,9 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		
 		# 音樂播放器
 		self.media_player = QMediaPlayer()
-		self.media_player.setSource(QUrl.fromLocalFile("../temp/1247388511028514928/main.webm"))
 		self.audio_output = QAudioOutput()
 		self.media_player.setAudioOutput(self.audio_output)
+		# self.media_player.setSource(QUrl.fromLocalFile("../temp/1247388511028514928/main.webm"))
 
 		self.play_button.clicked.connect(self.playPause)
 
@@ -115,6 +123,9 @@ class QuestionEditor(QtWidgets.QMainWindow):
 
 		self.media_player.positionChanged.connect(self.positionChanged)
 		self.media_player.durationChanged.connect(self.durationChanged)
+		
+		# 片段列表
+		self.part_list_widget.itemClicked.connect(self.updateQuestionPartSetting)
 
 		self.updatePage()
 		self.show()
@@ -154,8 +165,8 @@ class QuestionEditor(QtWidgets.QMainWindow):
 	# ====================================================================================================
 
 	def getYoutubeInfo(self, vid):
-		if vid in self.youtube_cache:
-			return self.youtube_cache[vid]
+		# if vid in self.youtube_cache:
+			# return self.youtube_cache[vid]
 			
 		url = f"https://www.youtube.com/watch?v={vid}"
 		ytdl = youtube_dl.YoutubeDL()
@@ -170,7 +181,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			"thumbnail": data["thumbnail"]
 		}
 		try:
-			parsed_url = urlparse(data["fragments"][0]["url"])
+			parsed_url = urlparse(data["formats"][-1]["url"])
 			info["duration"] = int(float(parse_qs(parsed_url.query)["dur"][0]) * 1000)
 		except:
 			info["duration"] = data["duration"] * 1000
@@ -236,6 +247,42 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			item = self.question_list_widget.item(i)
 			item.setHidden(True)
 	
+	def updateQuestionPartList(self):
+		question_list = self.question_set["questions"]
+		idx = self.question_list_widget.currentRow()
+		if len(question_list) == 0 or idx >= len(question_list):
+			return
+		
+		question_parts = question_list[idx]["parts"]
+		for i in range(len(question_parts)):
+			if self.part_list_widget.count() <= i:
+				item = QtWidgets.QListWidgetItem(str(i + 1))
+				item.setSizeHint(QSize(25, 25))
+				item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+				self.part_list_widget.addItem(item)
+			else:
+				item = self.part_list_widget.item(i)
+				
+			item.setHidden(False)
+				
+		for i in range(len(question_parts), self.part_list_widget.count()):
+			item = self.part_list_widget.item(i)
+			item.setHidden(True)
+		
+	def updateQuestionPartSetting(self):
+		question_list = self.question_set["questions"]
+		idx = self.question_list_widget.currentRow()
+		if len(question_list) == 0 or idx >= len(question_list):
+			return
+		
+		question_parts = question_list[idx]["parts"]
+		idx2 = self.part_list_widget.currentRow()
+		if len(question_parts) == 0 or idx2 >= len(question_parts):
+			return
+		
+		self.begin_time_label.setText(getTimeText(question_parts[idx2][0]))
+		self.end_time_label.setText(getTimeText(question_parts[idx2][1]))
+	
 	def updateQuestionDetail(self):
 		question_list = self.question_set["questions"]
 		idx = self.question_list_widget.currentRow()
@@ -243,9 +290,30 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			self.question_detail_page.setEnabled(False)
 			return
 		
+		vid = question_list[idx]["vid"]
+		if vid == self.current_detail_vid:
+			return
+			
 		self.question_detail_page.setEnabled(True)
-		# TODO: 更新右邊資訊
-		print(idx)
+		
+		info = self.getYoutubeInfo(vid)
+		# 更新右邊資訊
+		self.youtube_title.setText(info["title"])
+		self.youtube_author.setText(info["author"])
+		self.youtube_url.setText(f"https://www.youtube.com/watch?v={vid}")
+		
+		data = urllib.request.urlopen(info["thumbnail"]).read()
+		pixmap = QtGui.QPixmap()
+		pixmap.loadFromData(data)
+		pixmap = pixmap.scaled(self.youtube_thumbnail.size(), Qt.AspectRatioMode.KeepAspectRatio)
+		self.youtube_thumbnail.setPixmap(pixmap)
+		
+		self.updateDurationLabel(info["duration"])
+		self.media_player.setPosition(0)
+		
+		self.updateQuestionPartList()
+		self.part_list_widget.setCurrentRow(0)
+		self.updateQuestionPartSetting()
 	
 	def updatePage(self):
 		# 更新整個畫面內容
@@ -263,8 +331,10 @@ class QuestionEditor(QtWidgets.QMainWindow):
 				
 		self.question_set = QUESTION_SET_TEMPLATE.copy()
 		self.question_vid_set.clear()
+		self.current_detail_vid = ""
 		self.file_path = None
 		self.dirty_flag = False
+		
 		self.updatePage()
 	
 	def loadFile(self):
@@ -287,8 +357,11 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.question_vid_set.clear()
 		for question in question_set["questions"]:
 			self.question_vid_set.add(question["vid"])
+		self.current_detail_vid = ""
 		self.file_path = file_path
 		self.dirty_flag = False
+		
+		self.question_list_widget.setCurrentRow(0)
 		self.updatePage()
 	
 	def saveReal(self):
@@ -342,6 +415,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		question = QUESTION_OBJ_TEMPLATE.copy()
 		question["title"] = info["title"]
 		question["vid"] = vid
+		question["parts"].append([0, info["duration"]])
 		
 		target_idx = len(self.question_set["questions"])
 		self.question_set["questions"].append(question)
@@ -379,15 +453,14 @@ class QuestionEditor(QtWidgets.QMainWindow):
 	def positionChanged(self, position):
 		self.position_slider.setValue(position)
 		self.updateTimeLabel()
+	
+	def updateDurationLabel(self, duration):
+		self.duration_label.setText(getTimeText(duration))
 
 	def durationChanged(self, duration):
 		self.position_slider.setRange(0, duration)
 		
-		duration_minutes = duration // 60000
-		duration_seconds = (duration // 1000) % 60
-		duration_ms = duration % 1000
-		self.duration_label.setText(f"{duration_minutes}:{duration_seconds:02d}.{duration_ms:03d}")
-		
+		self.updateDurationLabel(duration)
 		self.updateTimeLabel()
 	
 	def beginDragPosition(self):
@@ -403,10 +476,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 
 	def updateTimeLabel(self):
 		position = self.media_player.position()
-		position_minutes = position // 60000
-		position_seconds = (position // 1000) % 60
-		position_ms = position % 1000
-		self.position_label.setText(f"{position_minutes}:{position_seconds:02d}.{position_ms:03d}")
+		self.position_label.setText(getTimeText(position))
 
 if __name__ == '__main__':
 	app = QtWidgets.QApplication(sys.argv)

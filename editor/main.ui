@@ -242,6 +242,9 @@
       <property name="alignment">
        <set>Qt::AlignCenter</set>
       </property>
+      <property name="textInteractionFlags">
+       <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
+      </property>
      </widget>
      <widget class="QLabel" name="youtube_author">
       <property name="geometry">
@@ -265,6 +268,9 @@
       </property>
       <property name="alignment">
        <set>Qt::AlignCenter</set>
+      </property>
+      <property name="textInteractionFlags">
+       <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
       </property>
      </widget>
      <widget class="QLabel" name="youtube_url">
@@ -335,8 +341,11 @@
       <property name="alignment">
        <set>Qt::AlignCenter</set>
       </property>
+      <property name="textInteractionFlags">
+       <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
+      </property>
      </widget>
-     <widget class="QLabel" name="thumbnail_img">
+     <widget class="QLabel" name="youtube_thumbnail">
       <property name="geometry">
        <rect>
         <x>80</x>
@@ -347,6 +356,9 @@
       </property>
       <property name="text">
        <string/>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
       </property>
      </widget>
      <widget class="QWidget" name="verticalLayoutWidget">
@@ -640,43 +652,6 @@
       <property name="frameShadow">
        <enum>QFrame::Raised</enum>
       </property>
-      <widget class="QWidget" name="horizontalLayoutWidget">
-       <property name="geometry">
-        <rect>
-         <x>0</x>
-         <y>0</y>
-         <width>491</width>
-         <height>31</height>
-        </rect>
-       </property>
-       <layout class="QHBoxLayout" name="part_list_layout">
-        <property name="sizeConstraint">
-         <enum>QLayout::SetDefaultConstraint</enum>
-        </property>
-        <item>
-         <widget class="QPushButton" name="pushButton_4">
-          <property name="maximumSize">
-           <size>
-            <width>25</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="text">
-           <string>1</string>
-          </property>
-          <property name="autoDefault">
-           <bool>false</bool>
-          </property>
-          <property name="default">
-           <bool>false</bool>
-          </property>
-          <property name="flat">
-           <bool>false</bool>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </widget>
       <widget class="QPushButton" name="delete_part_btn">
        <property name="geometry">
         <rect>
@@ -727,6 +702,28 @@
        </property>
        <property name="text">
         <string>向左移動</string>
+       </property>
+      </widget>
+      <widget class="QListWidget" name="part_list_widget">
+       <property name="geometry">
+        <rect>
+         <x>16</x>
+         <y>6</y>
+         <width>461</width>
+         <height>31</height>
+        </rect>
+       </property>
+       <property name="editTriggers">
+        <set>QAbstractItemView::NoEditTriggers</set>
+       </property>
+       <property name="flow">
+        <enum>QListView::LeftToRight</enum>
+       </property>
+       <property name="spacing">
+        <number>5</number>
+       </property>
+       <property name="itemAlignment">
+        <set>Qt::AlignCenter</set>
        </property>
       </widget>
      </widget>

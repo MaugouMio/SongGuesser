@@ -121,7 +121,7 @@ class GameData:
 			"questions":
 			[
 				{
-					"url": str,
+					"vid": str,
 					"parts":
 					[
 						[ int, int ]	# [ start_time(ms), end_time(ms) ]
@@ -144,16 +144,18 @@ class GameData:
 		for question in question_set["questions"]:
 			if type(question) is not dict:
 				return 100
-			if "url" not in question:
+			if "vid" not in question:
 				return 101
-			if type(question["url"]) is not str:
+			if type(question["vid"]) is not str:
 				return 102
-			if "parts" not in question:
+			if len(question["vid"]) == 0:
 				return 103
-			if type(question["parts"]) is not list:
+			if "parts" not in question:
 				return 104
-			if len(question["parts"]) == 0:
+			if type(question["parts"]) is not list:
 				return 105
+			if len(question["parts"]) == 0:
+				return 106
 			for part in question["parts"]:
 				if type(part) is not list:
 					return 150
@@ -225,7 +227,8 @@ class SongGuesser(commands.Cog):
 			return
 			
 		idx = game.current_question_idx
-		await YTDLSource.load_from_url(game.question_set["questions"][idx]["url"], game.question_set["questions"][idx]["parts"], game.guild_id, loop=self.bot.loop)
+		vid = game.question_set["questions"][idx]["vid"]
+		await YTDLSource.load_from_url(f"https://www.youtube.com/watch?v={vid}", game.question_set["questions"][idx]["parts"], game.guild_id, loop=self.bot.loop)
 		game.reset_question()
 		await self.play_part(game)
 		
@@ -463,8 +466,8 @@ class SongGuesser(commands.Cog):
 			
 		idx = game.current_question_idx
 		if answer in game.question_set["questions"][idx]["candidates"]:
-			url = game.question_set["questions"][idx]["url"]
-			await interaction.response.send_message(f"⭕ {interaction.user.name} 猜：{answer}\n成功獲得一分！\n使用 `/下一題` 指令繼續遊戲\n{url}")
+			vid = game.question_set["questions"][idx]["vid"]
+			await interaction.response.send_message(f"⭕ {interaction.user.name} 猜：{answer}\n成功獲得一分！\n使用 `/下一題` 指令繼續遊戲\nhttps://www.youtube.com/watch?v={vid}")
 			game.answer_guessed = True
 			
 			if interaction.user not in game.player_scores:

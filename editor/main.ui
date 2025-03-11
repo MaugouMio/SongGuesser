@@ -219,153 +219,11 @@
      <property name="frameShadow">
       <enum>QFrame::Raised</enum>
      </property>
-     <widget class="QLabel" name="youtube_title">
-      <property name="geometry">
-       <rect>
-        <x>0</x>
-        <y>10</y>
-        <width>491</width>
-        <height>21</height>
-       </rect>
-      </property>
-      <property name="font">
-       <font>
-        <family>微軟正黑體</family>
-        <pointsize>12</pointsize>
-        <bold>true</bold>
-        <kerning>true</kerning>
-       </font>
-      </property>
-      <property name="text">
-       <string>影片標題</string>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignCenter</set>
-      </property>
-      <property name="textInteractionFlags">
-       <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
-      </property>
-     </widget>
-     <widget class="QLabel" name="youtube_author">
-      <property name="geometry">
-       <rect>
-        <x>0</x>
-        <y>40</y>
-        <width>491</width>
-        <height>16</height>
-       </rect>
-      </property>
-      <property name="font">
-       <font>
-        <family>微軟正黑體</family>
-        <pointsize>9</pointsize>
-        <bold>false</bold>
-        <kerning>true</kerning>
-       </font>
-      </property>
-      <property name="text">
-       <string>影片作者</string>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignCenter</set>
-      </property>
-      <property name="textInteractionFlags">
-       <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
-      </property>
-     </widget>
-     <widget class="QLabel" name="youtube_url">
-      <property name="geometry">
-       <rect>
-        <x>0</x>
-        <y>60</y>
-        <width>491</width>
-        <height>16</height>
-       </rect>
-      </property>
-      <property name="palette">
-       <palette>
-        <active>
-         <colorrole role="WindowText">
-          <brush brushstyle="SolidPattern">
-           <color alpha="255">
-            <red>147</red>
-            <green>147</green>
-            <blue>147</blue>
-           </color>
-          </brush>
-         </colorrole>
-         <colorrole role="Text">
-          <brush brushstyle="SolidPattern">
-           <color alpha="255">
-            <red>147</red>
-            <green>147</green>
-            <blue>147</blue>
-           </color>
-          </brush>
-         </colorrole>
-        </active>
-        <inactive>
-         <colorrole role="WindowText">
-          <brush brushstyle="SolidPattern">
-           <color alpha="255">
-            <red>147</red>
-            <green>147</green>
-            <blue>147</blue>
-           </color>
-          </brush>
-         </colorrole>
-         <colorrole role="Text">
-          <brush brushstyle="SolidPattern">
-           <color alpha="255">
-            <red>147</red>
-            <green>147</green>
-            <blue>147</blue>
-           </color>
-          </brush>
-         </colorrole>
-        </inactive>
-        <disabled/>
-       </palette>
-      </property>
-      <property name="font">
-       <font>
-        <pointsize>9</pointsize>
-       </font>
-      </property>
-      <property name="text">
-       <string>URL</string>
-      </property>
-      <property name="textFormat">
-       <enum>Qt::AutoText</enum>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignCenter</set>
-      </property>
-      <property name="textInteractionFlags">
-       <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
-      </property>
-     </widget>
-     <widget class="QLabel" name="youtube_thumbnail">
-      <property name="geometry">
-       <rect>
-        <x>80</x>
-        <y>90</y>
-        <width>331</width>
-        <height>161</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string/>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignCenter</set>
-      </property>
-     </widget>
      <widget class="QWidget" name="verticalLayoutWidget">
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>270</y>
+        <y>305</y>
         <width>471</width>
         <height>31</height>
        </rect>
@@ -376,7 +234,7 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>300</y>
+        <y>335</y>
         <width>91</width>
         <height>20</height>
        </rect>
@@ -392,7 +250,7 @@
       <property name="geometry">
        <rect>
         <x>390</x>
-        <y>300</y>
+        <y>335</y>
         <width>91</width>
         <height>20</height>
        </rect>
@@ -408,7 +266,7 @@
       <property name="geometry">
        <rect>
         <x>180</x>
-        <y>320</y>
+        <y>355</y>
         <width>131</width>
         <height>43</height>
        </rect>
@@ -473,177 +331,13 @@
        </item>
       </layout>
      </widget>
-     <widget class="QLabel" name="begin_time_label">
-      <property name="geometry">
-       <rect>
-        <x>80</x>
-        <y>380</y>
-        <width>75</width>
-        <height>20</height>
-       </rect>
-      </property>
-      <property name="palette">
-       <palette>
-        <active>
-         <colorrole role="WindowText">
-          <brush brushstyle="SolidPattern">
-           <color alpha="255">
-            <red>147</red>
-            <green>147</green>
-            <blue>147</blue>
-           </color>
-          </brush>
-         </colorrole>
-         <colorrole role="Text">
-          <brush brushstyle="SolidPattern">
-           <color alpha="255">
-            <red>147</red>
-            <green>147</green>
-            <blue>147</blue>
-           </color>
-          </brush>
-         </colorrole>
-        </active>
-        <inactive>
-         <colorrole role="WindowText">
-          <brush brushstyle="SolidPattern">
-           <color alpha="255">
-            <red>147</red>
-            <green>147</green>
-            <blue>147</blue>
-           </color>
-          </brush>
-         </colorrole>
-         <colorrole role="Text">
-          <brush brushstyle="SolidPattern">
-           <color alpha="255">
-            <red>147</red>
-            <green>147</green>
-            <blue>147</blue>
-           </color>
-          </brush>
-         </colorrole>
-        </inactive>
-        <disabled/>
-       </palette>
-      </property>
-      <property name="font">
-       <font>
-        <pointsize>9</pointsize>
-       </font>
-      </property>
-      <property name="text">
-       <string>0:00.000</string>
-      </property>
-      <property name="textFormat">
-       <enum>Qt::AutoText</enum>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignCenter</set>
-      </property>
-     </widget>
-     <widget class="QLabel" name="end_time_label">
-      <property name="geometry">
-       <rect>
-        <x>330</x>
-        <y>380</y>
-        <width>75</width>
-        <height>20</height>
-       </rect>
-      </property>
-      <property name="palette">
-       <palette>
-        <active>
-         <colorrole role="WindowText">
-          <brush brushstyle="SolidPattern">
-           <color alpha="255">
-            <red>147</red>
-            <green>147</green>
-            <blue>147</blue>
-           </color>
-          </brush>
-         </colorrole>
-         <colorrole role="Text">
-          <brush brushstyle="SolidPattern">
-           <color alpha="255">
-            <red>147</red>
-            <green>147</green>
-            <blue>147</blue>
-           </color>
-          </brush>
-         </colorrole>
-        </active>
-        <inactive>
-         <colorrole role="WindowText">
-          <brush brushstyle="SolidPattern">
-           <color alpha="255">
-            <red>147</red>
-            <green>147</green>
-            <blue>147</blue>
-           </color>
-          </brush>
-         </colorrole>
-         <colorrole role="Text">
-          <brush brushstyle="SolidPattern">
-           <color alpha="255">
-            <red>147</red>
-            <green>147</green>
-            <blue>147</blue>
-           </color>
-          </brush>
-         </colorrole>
-        </inactive>
-        <disabled/>
-       </palette>
-      </property>
-      <property name="font">
-       <font>
-        <pointsize>9</pointsize>
-       </font>
-      </property>
-      <property name="text">
-       <string>0:00.000</string>
-      </property>
-      <property name="textFormat">
-       <enum>Qt::AutoText</enum>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignCenter</set>
-      </property>
-     </widget>
-     <widget class="QPushButton" name="set_begin_btn">
-      <property name="geometry">
-       <rect>
-        <x>80</x>
-        <y>400</y>
-        <width>75</width>
-        <height>23</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>設為開頭</string>
-      </property>
-     </widget>
-     <widget class="QPushButton" name="set_end_btn">
-      <property name="geometry">
-       <rect>
-        <x>330</x>
-        <y>400</y>
-        <width>75</width>
-        <height>23</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>設為結尾</string>
-      </property>
-     </widget>
      <widget class="QFrame" name="frame_3">
       <property name="geometry">
        <rect>
         <x>0</x>
-        <y>440</y>
+        <y>434</y>
         <width>491</width>
-        <height>65</height>
+        <height>71</height>
        </rect>
       </property>
       <property name="frameShape">
@@ -656,7 +350,7 @@
        <property name="geometry">
         <rect>
          <x>87</x>
-         <y>40</y>
+         <y>45</y>
          <width>75</width>
          <height>23</height>
         </rect>
@@ -669,7 +363,7 @@
        <property name="geometry">
         <rect>
          <x>7</x>
-         <y>40</y>
+         <y>45</y>
          <width>75</width>
          <height>23</height>
         </rect>
@@ -682,7 +376,7 @@
        <property name="geometry">
         <rect>
          <x>410</x>
-         <y>40</y>
+         <y>45</y>
          <width>75</width>
          <height>23</height>
         </rect>
@@ -695,7 +389,7 @@
        <property name="geometry">
         <rect>
          <x>330</x>
-         <y>40</y>
+         <y>45</y>
          <width>75</width>
          <height>23</height>
         </rect>
@@ -707,9 +401,9 @@
       <widget class="QListWidget" name="part_list_widget">
        <property name="geometry">
         <rect>
-         <x>16</x>
-         <y>6</y>
-         <width>461</width>
+         <x>86</x>
+         <y>8</y>
+         <width>321</width>
          <height>31</height>
         </rect>
        </property>
@@ -727,6 +421,323 @@
        </property>
       </widget>
      </widget>
+     <widget class="QWidget" name="verticalLayoutWidget_2">
+      <property name="geometry">
+       <rect>
+        <x>70</x>
+        <y>361</y>
+        <width>81</width>
+        <height>61</height>
+       </rect>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <item>
+        <widget class="QPushButton" name="set_begin_btn">
+         <property name="text">
+          <string>設為開頭</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QTimeEdit" name="begin_time">
+         <property name="maximumDateTime">
+          <datetime>
+           <hour>15</hour>
+           <minute>59</minute>
+           <second>59</second>
+           <year>2000</year>
+           <month>1</month>
+           <day>1</day>
+          </datetime>
+         </property>
+         <property name="minimumDateTime">
+          <datetime>
+           <hour>16</hour>
+           <minute>0</minute>
+           <second>0</second>
+           <year>1999</year>
+           <month>12</month>
+           <day>31</day>
+          </datetime>
+         </property>
+         <property name="currentSection">
+          <enum>QDateTimeEdit::MSecSection</enum>
+         </property>
+         <property name="displayFormat">
+          <string>mm:ss.zzz</string>
+         </property>
+         <property name="calendarPopup">
+          <bool>false</bool>
+         </property>
+         <property name="time">
+          <time>
+           <hour>16</hour>
+           <minute>0</minute>
+           <second>0</second>
+          </time>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="verticalLayoutWidget_3">
+      <property name="geometry">
+       <rect>
+        <x>340</x>
+        <y>360</y>
+        <width>81</width>
+        <height>61</height>
+       </rect>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout_2">
+       <item>
+        <widget class="QPushButton" name="set_end_btn">
+         <property name="text">
+          <string>設為結尾</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QTimeEdit" name="end_time">
+         <property name="currentSection">
+          <enum>QDateTimeEdit::MinuteSection</enum>
+         </property>
+         <property name="displayFormat">
+          <string>mm:ss.zzz</string>
+         </property>
+         <property name="calendarPopup">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QPlainTextEdit" name="plainTextEdit">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>150</y>
+        <width>471</width>
+        <height>141</height>
+       </rect>
+      </property>
+      <property name="plainText">
+       <string/>
+      </property>
+     </widget>
+     <widget class="QFrame" name="frame_2">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>491</width>
+        <height>111</height>
+       </rect>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::Box</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Raised</enum>
+      </property>
+      <widget class="QLabel" name="youtube_title">
+       <property name="geometry">
+        <rect>
+         <x>180</x>
+         <y>10</y>
+         <width>301</width>
+         <height>41</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <family>微軟正黑體</family>
+         <pointsize>12</pointsize>
+         <bold>true</bold>
+         <kerning>true</kerning>
+        </font>
+       </property>
+       <property name="text">
+        <string>影片標題</string>
+       </property>
+       <property name="scaledContents">
+        <bool>false</bool>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
+       </property>
+      </widget>
+      <widget class="QLabel" name="youtube_author">
+       <property name="geometry">
+        <rect>
+         <x>180</x>
+         <y>60</y>
+         <width>301</width>
+         <height>16</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <family>微軟正黑體</family>
+         <pointsize>9</pointsize>
+         <bold>false</bold>
+         <kerning>true</kerning>
+        </font>
+       </property>
+       <property name="text">
+        <string>影片作者</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
+       </property>
+      </widget>
+      <widget class="QLabel" name="youtube_url">
+       <property name="geometry">
+        <rect>
+         <x>180</x>
+         <y>80</y>
+         <width>301</width>
+         <height>16</height>
+        </rect>
+       </property>
+       <property name="palette">
+        <palette>
+         <active>
+          <colorrole role="WindowText">
+           <brush brushstyle="SolidPattern">
+            <color alpha="255">
+             <red>147</red>
+             <green>147</green>
+             <blue>147</blue>
+            </color>
+           </brush>
+          </colorrole>
+          <colorrole role="Text">
+           <brush brushstyle="SolidPattern">
+            <color alpha="255">
+             <red>147</red>
+             <green>147</green>
+             <blue>147</blue>
+            </color>
+           </brush>
+          </colorrole>
+         </active>
+         <inactive>
+          <colorrole role="WindowText">
+           <brush brushstyle="SolidPattern">
+            <color alpha="255">
+             <red>147</red>
+             <green>147</green>
+             <blue>147</blue>
+            </color>
+           </brush>
+          </colorrole>
+          <colorrole role="Text">
+           <brush brushstyle="SolidPattern">
+            <color alpha="255">
+             <red>147</red>
+             <green>147</green>
+             <blue>147</blue>
+            </color>
+           </brush>
+          </colorrole>
+         </inactive>
+         <disabled/>
+        </palette>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>9</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>URL</string>
+       </property>
+       <property name="textFormat">
+        <enum>Qt::AutoText</enum>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
+       </property>
+      </widget>
+      <widget class="QFrame" name="frame_4">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>10</y>
+         <width>161</width>
+         <height>91</height>
+        </rect>
+       </property>
+       <property name="frameShape">
+        <enum>QFrame::WinPanel</enum>
+       </property>
+       <property name="frameShadow">
+        <enum>QFrame::Raised</enum>
+       </property>
+       <widget class="QLabel" name="youtube_thumbnail">
+        <property name="geometry">
+         <rect>
+          <x>0</x>
+          <y>0</y>
+          <width>160</width>
+          <height>90</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
+      </widget>
+      <zorder>frame_4</zorder>
+      <zorder>youtube_title</zorder>
+      <zorder>youtube_author</zorder>
+      <zorder>youtube_url</zorder>
+     </widget>
+     <widget class="QLabel" name="label_3">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>130</y>
+        <width>471</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>12</pointsize>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>允許的答案列表 (以換行分隔)</string>
+      </property>
+     </widget>
+     <zorder>frame_2</zorder>
+     <zorder>verticalLayoutWidget</zorder>
+     <zorder>position_label</zorder>
+     <zorder>duration_label</zorder>
+     <zorder>horizontalLayoutWidget_2</zorder>
+     <zorder>frame_3</zorder>
+     <zorder>verticalLayoutWidget_2</zorder>
+     <zorder>verticalLayoutWidget_3</zorder>
+     <zorder>plainTextEdit</zorder>
+     <zorder>label_3</zorder>
     </widget>
     <zorder>question_detail_page</zorder>
     <zorder>quest_list_page</zorder>

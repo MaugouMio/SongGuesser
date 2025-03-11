@@ -11,7 +11,7 @@ from pydub import AudioSegment
 from PyQt6 import uic
 from PyQt6 import QtWidgets, QtGui
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
-from PyQt6.QtCore import Qt, QUrl, QSize
+from PyQt6.QtCore import Qt, QUrl, QSize, QTime
 
 WINDOW_TITLE = "猜歌機器人題庫編輯器"
 YOUTUBE_ERROR_MSG = "無法載入指定的 Youtube 影片"
@@ -36,6 +36,12 @@ def getTimeText(t):
 	seconds = (t // 1000) % 60
 	ms = t % 1000
 	return f"{minutes}:{seconds:02d}.{ms:03d}"
+	
+def getQTime(t):
+	minutes = t // 60000
+	seconds = (t // 1000) % 60
+	ms = t % 1000
+	return QTime(0, minutes, seconds, ms)
 
 # clickable slider
 class Slider(QtWidgets.QSlider):
@@ -165,8 +171,8 @@ class QuestionEditor(QtWidgets.QMainWindow):
 	# ====================================================================================================
 
 	def getYoutubeInfo(self, vid):
-		# if vid in self.youtube_cache:
-			# return self.youtube_cache[vid]
+		if vid in self.youtube_cache:
+			return self.youtube_cache[vid]
 			
 		url = f"https://www.youtube.com/watch?v={vid}"
 		ytdl = youtube_dl.YoutubeDL()
@@ -280,8 +286,14 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		if len(question_parts) == 0 or idx2 >= len(question_parts):
 			return
 		
-		self.begin_time_label.setText(getTimeText(question_parts[idx2][0]))
-		self.end_time_label.setText(getTimeText(question_parts[idx2][1]))
+		info = self.getYoutubeInfo(question_list[idx]["vid"])
+		min_time = getQTime(0)
+		max_time = getQTime(info["duration"])
+		
+		self.begin_time.setTimeRange(min_time, max_time)
+		self.begin_time.setTime(getQTime(question_parts[idx2][0]))
+		self.end_time.setTimeRange(min_time, max_time)
+		self.end_time.setTime(getQTime(question_parts[idx2][1]))
 	
 	def updateQuestionDetail(self):
 		question_list = self.question_set["questions"]

@@ -115,6 +115,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		# 音樂播放器
 		self.media_player = QMediaPlayer()
 		self.audio_output = QAudioOutput()
+		self.audio_output.setVolume(0.5)
 		self.media_player.setAudioOutput(self.audio_output)
 		# self.media_player.setSource(QUrl.fromLocalFile("../temp/1247388511028514928/main.webm"))
 
@@ -214,7 +215,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			'source_address': '0.0.0.0',  # bind to ipv4 since ipv6 addresses cause issues sometimes
 		}
 		ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
-		ytdl.download(url)
+		ytdl.download([url])
 		self.youtube_audio_cache.add(vid)
 
 	def getYoutubeVideoID(self, url):
@@ -306,6 +307,10 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		if vid == self.current_detail_vid:
 			return
 			
+		# 先重置播放器
+		self.media_player.setSource(QUrl())
+		self.play_button.setText("▶")
+		
 		self.question_detail_page.setEnabled(True)
 		
 		info = self.getYoutubeInfo(vid)
@@ -455,6 +460,18 @@ class QuestionEditor(QtWidgets.QMainWindow):
 	# ====================================================================================================
 
 	def playPause(self):
+		# 先下載並載入音檔
+		if self.media_player.source().isEmpty():
+			question_list = self.question_set["questions"]
+			idx = self.question_list_widget.currentRow()
+			if len(question_list) == 0 or idx >= len(question_list):
+				self.question_detail_page.setEnabled(False)
+				return
+			
+			vid = question_list[idx]["vid"]
+			self.downloadYoutube(vid)
+			self.media_player.setSource(QUrl.fromLocalFile(f"cache/{vid}"))
+		
 		if self.media_player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
 			self.media_player.pause()
 			self.play_button.setText("▶")
@@ -470,6 +487,33 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.duration_label.setText(getTimeText(duration))
 
 	def durationChanged(self, duration):
+		question_list = self.question_set["questions"]
+		idx = self.question_list_widget.currentRow()
+		if len(question_list) == 0 or idx >= len(question_list):
+			self.question_detail_page.setEnabled(False)
+			return
+		
+		vid = question_list[idx]["vid"]
+		# 更新 cache 音樂長度
+		self.youtube_cache[vid]["duration"] = duration
+		new_max_time = getQTime(duration)
+		# 修正題庫片段設定的時間
+		for part in question_list[idx]["parts"]:
+			if part[0] > duration:
+				part[0] = duration
+				self.dirty_flag = True
+			if part[1] > duration:
+				part[1] = duration
+				self.dirty_flag = True
+				
+		if self.begin_time.time() > new_max_time:
+			self.begin_time.setTime(new_max_time)
+		self.begin_time.setMaximumTime(new_max_time)
+		
+		if self.end_time.time() > new_max_time:
+			self.end_time.setTime(new_max_time)
+		self.end_time.setMaximumTime(new_max_time)
+		
 		self.position_slider.setRange(0, duration)
 		
 		self.updateDurationLabel(duration)

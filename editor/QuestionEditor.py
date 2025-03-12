@@ -117,7 +117,6 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.audio_output = QAudioOutput()
 		self.audio_output.setVolume(self.volume_slider.value() / 100)
 		self.media_player.setAudioOutput(self.audio_output)
-		# self.media_player.setSource(QUrl.fromLocalFile("../temp/1247388511028514928/main.webm"))
 
 		self.play_button.clicked.connect(self.playPause)
 
@@ -132,6 +131,13 @@ class QuestionEditor(QtWidgets.QMainWindow):
 
 		self.media_player.positionChanged.connect(self.positionChanged)
 		self.media_player.durationChanged.connect(self.durationChanged)
+		
+		self.set_begin_btn.clicked.connect(self.setBeginTime)
+		self.begin_time.setTime(QTime(0, 0))
+		self.begin_time.userTimeChanged.connect(self.beginTimeChanged)
+		self.set_end_btn.clicked.connect(self.setEndTime)
+		self.end_time.setTime(QTime(0, 0))
+		self.end_time.userTimeChanged.connect(self.endTimeChanged)
 		
 		# 片段列表
 		self.part_list_widget.itemClicked.connect(self.updateQuestionPartSetting)
@@ -229,6 +235,25 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		if youtube_match:
 			return youtube_match.group(6)
 		return ""
+	
+	def getCurrentQuestion(self):
+		question_list = self.question_set["questions"]
+		idx = self.question_list_widget.currentRow()
+		if len(question_list) == 0 or idx >= len(question_list):
+			return None
+		return question_list[idx]
+	
+	def getCurrentQuestionPart(self):
+		question = self.getCurrentQuestion()
+		if not question:
+			return None
+			
+		question_parts = question["parts"]
+		idx = self.part_list_widget.currentRow()
+		if len(question_parts) == 0 or idx >= len(question_parts):
+			return None
+			
+		return question_parts[idx]
 		
 	# ====================================================================================================
 		
@@ -257,12 +282,11 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			item.setHidden(True)
 	
 	def updateQuestionPartList(self):
-		question_list = self.question_set["questions"]
-		idx = self.question_list_widget.currentRow()
-		if len(question_list) == 0 or idx >= len(question_list):
+		question = self.getCurrentQuestion()
+		if not question:
 			return
 		
-		question_parts = question_list[idx]["parts"]
+		question_parts = question["parts"]
 		for i in range(len(question_parts)):
 			if self.part_list_widget.count() <= i:
 				item = QtWidgets.QListWidgetItem(str(i + 1))
@@ -279,35 +303,33 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			item.setHidden(True)
 		
 	def updateQuestionPartSetting(self):
-		question_list = self.question_set["questions"]
-		idx = self.question_list_widget.currentRow()
-		if len(question_list) == 0 or idx >= len(question_list):
+		question = self.getCurrentQuestion()
+		if not question:
 			return
 		
-		question_parts = question_list[idx]["parts"]
-		idx2 = self.part_list_widget.currentRow()
-		if len(question_parts) == 0 or idx2 >= len(question_parts):
+		question_part = self.getCurrentQuestionPart()
+		if not question_part:
 			return
 		
-		info = self.getYoutubeInfo(question_list[idx]["vid"])
+		info = self.getYoutubeInfo(question["vid"])
 		min_time = getQTime(0)
 		max_time = getQTime(info["duration"])
 		
 		self.begin_time.setTimeRange(min_time, max_time)
-		self.begin_time.setTime(getQTime(question_parts[idx2][0]))
+		self.begin_time.setTime(getQTime(question_part[0]))
 		self.end_time.setTimeRange(min_time, max_time)
-		self.end_time.setTime(getQTime(question_parts[idx2][1]))
+		self.end_time.setTime(getQTime(question_part[1]))
 	
 	def updateQuestionDetail(self):
-		question_list = self.question_set["questions"]
-		idx = self.question_list_widget.currentRow()
-		if len(question_list) == 0 or idx >= len(question_list):
+		question = self.getCurrentQuestion()
+		if not question:
 			self.question_detail_page.setEnabled(False)
 			return
 		
-		vid = question_list[idx]["vid"]
+		vid = question["vid"]
 		if vid == self.current_detail_vid:
 			return
+		self.current_detail_vid = vid
 			
 		# 先重置播放器
 		self.media_player.setSource(QUrl())
@@ -464,13 +486,11 @@ class QuestionEditor(QtWidgets.QMainWindow):
 	def playPause(self):
 		# 先下載並載入音檔
 		if self.media_player.source().isEmpty():
-			question_list = self.question_set["questions"]
-			idx = self.question_list_widget.currentRow()
-			if len(question_list) == 0 or idx >= len(question_list):
-				self.question_detail_page.setEnabled(False)
+			question = self.getCurrentQuestion()
+			if not question:
 				return
 			
-			vid = question_list[idx]["vid"]
+			vid = question["vid"]
 			self.downloadYoutube(vid)
 			self.media_player.setSource(QUrl.fromLocalFile(f"cache/{vid}"))
 		
@@ -489,31 +509,16 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.duration_label.setText(getTimeText(duration))
 
 	def durationChanged(self, duration):
-		question_list = self.question_set["questions"]
-		idx = self.question_list_widget.currentRow()
-		if len(question_list) == 0 or idx >= len(question_list):
-			self.question_detail_page.setEnabled(False)
+		question = self.getCurrentQuestion()
+		if not question:
 			return
 		
-		vid = question_list[idx]["vid"]
+		vid = question["vid"]
 		# 更新 cache 音樂長度
 		self.youtube_cache[vid]["duration"] = duration
-		new_max_time = getQTime(duration)
-		# 修正題庫片段設定的時間
-		for part in question_list[idx]["parts"]:
-			if part[0] > duration:
-				part[0] = duration
-				self.dirty_flag = True
-			if part[1] > duration:
-				part[1] = duration
-				self.dirty_flag = True
-				
-		if self.begin_time.time() > new_max_time:
-			self.begin_time.setTime(new_max_time)
-		self.begin_time.setMaximumTime(new_max_time)
 		
-		if self.end_time.time() > new_max_time:
-			self.end_time.setTime(new_max_time)
+		new_max_time = getQTime(duration)
+		self.begin_time.setMaximumTime(new_max_time)
 		self.end_time.setMaximumTime(new_max_time)
 		
 		self.position_slider.setRange(0, duration)
@@ -538,6 +543,30 @@ class QuestionEditor(QtWidgets.QMainWindow):
 
 	def setVolume(self, volume):
 		self.audio_output.setVolume(volume / 100)
+
+	def setBeginTime(self):
+		nowTime = getQTime(self.media_player.position())
+		self.begin_time.setTime(nowTime)
+
+	def beginTimeChanged(self, qtime):
+		question_part = self.getCurrentQuestionPart()
+		if not question_part:
+			return
+		
+		question_part[0] = qtime.minute() * 60000 + qtime.second() * 1000 + qtime.msec()
+		self.dirty_flag = True
+
+	def setEndTime(self):
+		nowTime = getQTime(self.media_player.position())
+		self.end_time.setTime(nowTime)
+
+	def endTimeChanged(self, qtime):
+		question_part = self.getCurrentQuestionPart()
+		if not question_part:
+			return
+		
+		question_part[1] = qtime.minute() * 60000 + qtime.second() * 1000 + qtime.msec()
+		self.dirty_flag = True
 
 if __name__ == '__main__':
 	app = QtWidgets.QApplication(sys.argv)

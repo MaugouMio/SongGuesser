@@ -741,7 +741,7 @@
        <string>試聽片段</string>
       </property>
      </widget>
-     <widget class="QSlider" name="horizontalSlider">
+     <widget class="QSlider" name="volume_slider">
       <property name="geometry">
        <rect>
         <x>410</x>
@@ -804,7 +804,7 @@
      <zorder>answer_list</zorder>
      <zorder>label_3</zorder>
      <zorder>test_part_button</zorder>
-     <zorder>horizontalSlider</zorder>
+     <zorder>volume_slider</zorder>
      <zorder>label_4</zorder>
     </widget>
     <zorder>question_detail_page</zorder>

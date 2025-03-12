@@ -115,7 +115,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		# 音樂播放器
 		self.media_player = QMediaPlayer()
 		self.audio_output = QAudioOutput()
-		self.audio_output.setVolume(0.5)
+		self.audio_output.setVolume(self.volume_slider.value() / 100)
 		self.media_player.setAudioOutput(self.audio_output)
 		# self.media_player.setSource(QUrl.fromLocalFile("../temp/1247388511028514928/main.webm"))
 
@@ -127,6 +127,8 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.position_slider.sliderMoved.connect(self.setPosition)
 		self.position_slider.sliderReleased.connect(self.endDragPosition)
 		self.frame_audio_player.addWidget(self.position_slider)
+		
+		self.volume_slider.valueChanged.connect(self.setVolume)
 
 		self.media_player.positionChanged.connect(self.positionChanged)
 		self.media_player.durationChanged.connect(self.durationChanged)
@@ -533,6 +535,9 @@ class QuestionEditor(QtWidgets.QMainWindow):
 	def updateTimeLabel(self):
 		position = self.media_player.position()
 		self.position_label.setText(getTimeText(position))
+
+	def setVolume(self, volume):
+		self.audio_output.setVolume(volume / 100)
 
 if __name__ == '__main__':
 	app = QtWidgets.QApplication(sys.argv)

@@ -142,13 +142,14 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.end_time.setTime(QTime(0, 0))
 		self.end_time.userTimeChanged.connect(self.endTimeChanged)
 		
+		# 片段列表
+		self.part_list_widget.itemClicked.connect(self.updateQuestionPartSetting)
+		self.part_list_widget.horizontalScrollBar().setStyleSheet("QScrollBar{height:4px}")
+		
 		self.add_part_btn.clicked.connect(self.addQuestionPart)
 		self.delete_part_btn.clicked.connect(self.delQuestionPart)
 		self.move_left_btn.clicked.connect(self.movePartLeft)
 		self.move_right_btn.clicked.connect(self.movePartRight)
-		
-		# 片段列表
-		self.part_list_widget.itemClicked.connect(self.updateQuestionPartSetting)
 
 		self.updatePage()
 		self.show()
@@ -293,7 +294,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		for i in range(len(question_parts)):
 			if self.part_list_widget.count() <= i:
 				item = QtWidgets.QListWidgetItem(str(i + 1))
-				item.setSizeHint(QSize(25, 25))
+				item.setSizeHint(QSize(23, 23))
 				item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
 				self.part_list_widget.addItem(item)
 			else:

@@ -183,24 +183,19 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		if vid in self.youtube_cache:
 			return self.youtube_cache[vid]
 			
-		url = f"https://www.youtube.com/watch?v={vid}"
-		ytdl = youtube_dl.YoutubeDL()
+		url = f"https://noembed.com/embed?url=https://www.youtube.com/watch?v={vid}"
 		try:
-			data = ytdl.extract_info(url, download=False)
+			data = json.loads(urllib.request.urlopen(url).read().decode("utf8"))
+			if "error" in data:
+				return None
 		except:
 			return None
-		
+			
 		info = {
 			"title": data["title"],
-			"author": data["channel"],
-			"thumbnail": data["thumbnail"]
+			"author": data["author_name"],
+			"thumbnail": data["thumbnail_url"]
 		}
-		try:
-			parsed_url = urlparse(data["formats"][-1]["url"])
-			info["duration"] = int(float(parse_qs(parsed_url.query)["dur"][0]) * 1000)
-		except:
-			info["duration"] = data["duration"] * 1000
-			
 		self.youtube_cache[vid] = info
 		return info
 
@@ -311,13 +306,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		if not question_part:
 			return
 		
-		info = self.getYoutubeInfo(question["vid"])
-		min_time = getQTime(0)
-		max_time = getQTime(info["duration"])
-		
-		self.begin_time.setTimeRange(min_time, max_time)
 		self.begin_time.setTime(getQTime(question_part[0]))
-		self.end_time.setTimeRange(min_time, max_time)
 		self.end_time.setTime(getQTime(question_part[1]))
 	
 	def updateQuestionDetail(self):
@@ -349,7 +338,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		pixmap = pixmap.scaled(self.youtube_thumbnail.size(), Qt.AspectRatioMode.KeepAspectRatio)
 		self.youtube_thumbnail.setPixmap(pixmap)
 		
-		self.updateDurationLabel(info["duration"])
+		self.updateDurationLabel(info.get("duration", None))
 		self.media_player.setPosition(0)
 		
 		self.updateQuestionPartList()
@@ -456,7 +445,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		question = QUESTION_OBJ_TEMPLATE.copy()
 		question["title"] = info["title"]
 		question["vid"] = vid
-		question["parts"].append([0, info["duration"]])
+		question["parts"].append([0, 3000])  # 預設第一個片段是前 3 秒
 		
 		target_idx = len(self.question_set["questions"])
 		self.question_set["questions"].append(question)
@@ -482,9 +471,8 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.updatePage()
 		
 	# ====================================================================================================
-
-	def playPause(self):
-		# 先下載並載入音檔
+	
+	def checkDownloadBeforePlay(self):
 		if self.media_player.source().isEmpty():
 			question = self.getCurrentQuestion()
 			if not question:
@@ -493,6 +481,10 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			vid = question["vid"]
 			self.downloadYoutube(vid)
 			self.media_player.setSource(QUrl.fromLocalFile(f"cache/{vid}"))
+
+	def playPause(self):
+		# 先下載並載入音檔
+		self.checkDownloadBeforePlay()
 		
 		if self.media_player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
 			self.media_player.pause()
@@ -506,7 +498,10 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.updateTimeLabel()
 	
 	def updateDurationLabel(self, duration):
-		self.duration_label.setText(getTimeText(duration))
+		if duration:
+			self.duration_label.setText(getTimeText(duration))
+		else:
+			self.duration_label.setText("--:--.---")
 
 	def durationChanged(self, duration):
 		question = self.getCurrentQuestion()
@@ -517,9 +512,10 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		# 更新 cache 音樂長度
 		self.youtube_cache[vid]["duration"] = duration
 		
-		new_max_time = getQTime(duration)
-		self.begin_time.setMaximumTime(new_max_time)
-		self.end_time.setMaximumTime(new_max_time)
+		# 不特別限制使用者設定超過最大的時間，不然還要考慮切歌的時候會不會被上限修正影響到
+		# new_max_time = getQTime(duration)
+		# self.begin_time.setMaximumTime(new_max_time)
+		# self.end_time.setMaximumTime(new_max_time)
 		
 		self.position_slider.setRange(0, duration)
 		

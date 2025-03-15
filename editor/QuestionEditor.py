@@ -144,6 +144,8 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		
 		self.add_part_btn.clicked.connect(self.addQuestionPart)
 		self.delete_part_btn.clicked.connect(self.delQuestionPart)
+		self.move_left_btn.clicked.connect(self.movePartLeft)
+		self.move_right_btn.clicked.connect(self.movePartRight)
 		
 		# 片段列表
 		self.part_list_widget.itemClicked.connect(self.updateQuestionPartSetting)
@@ -631,6 +633,34 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		if idx == len(question["parts"]):  # 刪掉最後一個時一樣幫他選最後一個
 			self.part_list_widget.setCurrentRow(idx - 1)
 		self.updateQuestionPartSetting()
+	
+	def movePartLeft(self):
+		question = self.getCurrentQuestion()
+		if not question:
+			return
+			
+		idx = self.part_list_widget.currentRow()
+		if idx == 0 or idx >= len(question["parts"]):
+			return
+			
+		question["parts"][idx], question["parts"][idx - 1] = question["parts"][idx - 1], question["parts"][idx]
+		self.dirty_flag = True
+		
+		self.part_list_widget.setCurrentRow(idx - 1)
+	
+	def movePartRight(self):
+		question = self.getCurrentQuestion()
+		if not question:
+			return
+			
+		idx = self.part_list_widget.currentRow()
+		if idx + 1 >= len(question["parts"]):
+			return
+			
+		question["parts"][idx], question["parts"][idx + 1] = question["parts"][idx + 1], question["parts"][idx]
+		self.dirty_flag = True
+		
+		self.part_list_widget.setCurrentRow(idx + 1)
 
 if __name__ == '__main__':
 	app = QtWidgets.QApplication(sys.argv)

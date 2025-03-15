@@ -97,6 +97,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.dirty_flag = False
 		
 		self.dragPositionWasPlaying = False
+		self.auto_pause_time = -1
 		
 		self.initUI()
 
@@ -119,6 +120,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.media_player.setAudioOutput(self.audio_output)
 
 		self.play_button.clicked.connect(self.playPause)
+		self.test_part_button.clicked.connect(self.playPart)
 
 		self.position_slider = Slider(Qt.Orientation.Horizontal)
 		self.position_slider.setRange(0, 0)
@@ -131,6 +133,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 
 		self.media_player.positionChanged.connect(self.positionChanged)
 		self.media_player.durationChanged.connect(self.durationChanged)
+		self.media_player.playbackStateChanged.connect(self.playbackStateChanged)
 		
 		self.set_begin_btn.clicked.connect(self.setBeginTime)
 		self.begin_time.setTime(QTime(0, 0))
@@ -485,15 +488,38 @@ class QuestionEditor(QtWidgets.QMainWindow):
 	def playPause(self):
 		# 先下載並載入音檔
 		self.checkDownloadBeforePlay()
+		# 手動按播放或暫停時中斷試聽
+		self.auto_pause_time = -1
 		
 		if self.media_player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
 			self.media_player.pause()
-			self.play_button.setText("▶")
 		else:
 			self.media_player.play()
+
+	def playPart(self):
+		question_part = self.getCurrentQuestionPart()
+		if not question_part:
+			return
+			
+		# 先下載並載入音檔
+		self.checkDownloadBeforePlay()
+		
+		self.media_player.play()
+		self.media_player.setPosition(question_part[0])
+		self.play_button.setText("∎∎")
+		
+		self.auto_pause_time = question_part[1]
+	
+	def playbackStateChanged(self, newState):
+		if newState == QMediaPlayer.PlaybackState.PlayingState:
 			self.play_button.setText("∎∎")
+		else:
+			self.play_button.setText("▶")
 
 	def positionChanged(self, position):
+		if self.auto_pause_time >= 0 and position >= self.auto_pause_time:
+			self.media_player.pause()
+			
 		self.position_slider.setValue(position)
 		self.updateTimeLabel()
 	

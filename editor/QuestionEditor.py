@@ -142,6 +142,9 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.end_time.setTime(QTime(0, 0))
 		self.end_time.userTimeChanged.connect(self.endTimeChanged)
 		
+		self.add_part_btn.clicked.connect(self.addQuestionPart)
+		self.delete_part_btn.clicked.connect(self.delQuestionPart)
+		
 		# 片段列表
 		self.part_list_widget.itemClicked.connect(self.updateQuestionPartSetting)
 
@@ -353,6 +356,8 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.updateQuestionList()
 		self.updateQuestionDetail()
 		self.updateWindowTitle()
+		
+	# ====================================================================================================
 	
 	def newFile(self):
 		if self.dirty_flag:
@@ -448,7 +453,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		question = QUESTION_OBJ_TEMPLATE.copy()
 		question["title"] = info["title"]
 		question["vid"] = vid
-		question["parts"].append([0, 3000])  # 預設第一個片段是前 3 秒
+		question["parts"].append([0, 3000])  # 預設片段是前 3 秒
 		
 		target_idx = len(self.question_set["questions"])
 		self.question_set["questions"].append(question)
@@ -589,6 +594,43 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		
 		question_part[1] = qtime.minute() * 60000 + qtime.second() * 1000 + qtime.msec()
 		self.dirty_flag = True
+		
+	# ====================================================================================================
+	
+	def addQuestionPart(self):
+		question = self.getCurrentQuestion()
+		if not question:
+			return
+			
+		target_idx = len(question["parts"])
+		question["parts"].append([0, 3000])  # 預設片段是前 3 秒
+		self.dirty_flag = True
+		
+		# 點到新增的那個項目上
+		self.updateQuestionPartList()
+		self.part_list_widget.setCurrentRow(target_idx)
+		self.updateQuestionPartSetting()
+	
+	def delQuestionPart(self):
+		question = self.getCurrentQuestion()
+		if not question:
+			return
+			
+		# 至少要留一個片段
+		if len(question["parts"]) == 1:
+			return
+			
+		idx = self.part_list_widget.currentRow()
+		if idx >= len(question["parts"]):
+			return
+			
+		del question["parts"][idx]
+		self.dirty_flag = True
+		
+		self.updateQuestionPartList()
+		if idx == len(question["parts"]):  # 刪掉最後一個時一樣幫他選最後一個
+			self.part_list_widget.setCurrentRow(idx - 1)
+		self.updateQuestionPartSetting()
 
 if __name__ == '__main__':
 	app = QtWidgets.QApplication(sys.argv)

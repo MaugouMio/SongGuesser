@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 from urllib.parse import parse_qs
 
 from youtube_dl import youtube_dl
+from pytube import Playlist
 
 from PyQt6 import uic
 from PyQt6 import QtWidgets, QtGui
@@ -14,6 +15,7 @@ from PyQt6.QtCore import Qt, QCoreApplication, QUrl, QSize, QTime, QRect
 
 WINDOW_TITLE = "猜歌機器人題庫編輯器"
 YOUTUBE_ERROR_MSG = "無法載入指定的 Youtube 影片"
+PLAYLIST_ERROR_MSG = "無法載入指定的 Youtube 播放清單"
 
 QUESTION_SET_TEMPLATE = {
 	"title": "我的題庫",
@@ -183,6 +185,14 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.youtube_url_dialog.setLabelText("輸入 Youtube 網址：")
 		self.youtube_url_dialog.setFixedSize(480, 120)
 		
+		# 確認是否匯入整個播放清單的 message box
+		self.check_all_playlist = QtWidgets.QMessageBox(self)
+		self.check_all_playlist.setWindowTitle(WINDOW_TITLE)
+		self.check_all_playlist.setIcon(QtWidgets.QMessageBox.Icon.Information)
+		self.check_all_playlist.setText("是否匯入整個播放清單？")
+		self.check_all_playlist.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
+		self.check_all_playlist.setDefaultButton(QtWidgets.QMessageBox.StandardButton.No)
+		
 		# 提示訊息
 		self.message_box = QtWidgets.QMessageBox(self)
 
@@ -318,6 +328,13 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		}
 		self.youtube_cache[vid] = info
 		return info
+	
+	def getYoutubePlaylist(self, url):
+		try:
+			playlist = Playlist(url)
+			return [ link.split("?v=")[1] for link in playlist ]
+		except:
+			return None
 
 	def downloadYoutube(self, vid):
 		if vid in self.youtube_audio_cache:
@@ -578,33 +595,83 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			self.message_box.critical(self, WINDOW_TITLE, YOUTUBE_ERROR_MSG)
 			return
 		
-		if vid in self.question_vid_set:
-			for i, question in enumerate(self.question_set["questions"]):
-				if question["vid"] == vid:
-					self.question_list_widget.setCurrentRow(i)
-					self.updateQuestionDetail()
-					break
-			return
+		# 詢問是否匯入播放清單
+		if "&list=" in url:
+			result = self.check_all_playlist.exec()
+			if result == QtWidgets.QMessageBox.StandardButton.Yes:
+				playlist = self.getYoutubePlaylist(url)
+				if not playlist:
+					self.message_box.critical(self, WINDOW_TITLE, PLAYLIST_ERROR_MSG)
+					return
+				
+				duplicate_count = 0
+				invalid_count = 0
+				real_add_list = []
+				progress = QtWidgets.QProgressDialog("匯入播放清單中...", "取消", 0, len(playlist), self)
+				progress.setWindowTitle(WINDOW_TITLE)
+				progress.setAutoClose(True)
+				for i, vid in enumerate(playlist):
+					if progress.wasCanceled():
+						break
+						
+					progress.setValue(i)
+					QtWidgets.QApplication.processEvents()
+					
+					if vid in self.question_vid_set:
+						duplicate_count += 1
+						continue
+					
+					info = self.getYoutubeInfo(vid)
+					if not info:
+						invalid_count += 1
+						continue
+					
+					question = copy.deepcopy(QUESTION_OBJ_TEMPLATE)
+					question["title"] = info["title"]
+					question["vid"] = vid
+					question["parts"].append([0, 3000])	 # 預設片段是前 3 秒
+					question["candidates"].append(info["title"])
+					
+					real_add_list.append(question)
+				
+				# 被取消直接放棄所有匯入
+				if progress.wasCanceled():
+					return
+				progress.reset()
+				
+				for question in real_add_list:
+					self.question_set["questions"].append(question)
+					self.question_vid_set.add(question["vid"])
+				
+				self.message_box.information(self, WINDOW_TITLE, f"已匯入播放清單的 {len(playlist)} 部影片\n已忽略重複的 {duplicate_count} 部影片\n共 {invalid_count} 部影片無法載入")
+			else:
+				if vid in self.question_vid_set:
+					for i, question in enumerate(self.question_set["questions"]):
+						if question["vid"] == vid:
+							self.question_list_widget.setCurrentRow(i)
+							self.updateQuestionDetail()
+							break
+					return
 		
-		info = self.getYoutubeInfo(vid)
-		if not info:
-			self.message_box.critical(self, WINDOW_TITLE, YOUTUBE_ERROR_MSG)
-			return
-		
-		question = copy.deepcopy(QUESTION_OBJ_TEMPLATE)
-		question["title"] = info["title"]
-		question["vid"] = vid
-		question["parts"].append([0, 3000])	 # 預設片段是前 3 秒
-		question["candidates"].append(info["title"])
-		
-		target_idx = len(self.question_set["questions"])
-		self.question_set["questions"].append(question)
-		self.question_vid_set.add(vid)
+				info = self.getYoutubeInfo(vid)
+				if not info:
+					self.message_box.critical(self, WINDOW_TITLE, YOUTUBE_ERROR_MSG)
+					return
+				
+				question = copy.deepcopy(QUESTION_OBJ_TEMPLATE)
+				question["title"] = info["title"]
+				question["vid"] = vid
+				question["parts"].append([0, 3000])	 # 預設片段是前 3 秒
+				question["candidates"].append(info["title"])
+				
+				self.question_set["questions"].append(question)
+				self.question_vid_set.add(vid)
+				
 		self.dirty_flag = True
 		
 		# 點到新增的那個項目上
 		self.updateQuestionList()
-		self.question_list_widget.setCurrentRow(target_idx)
+		self.question_list_widget.setCurrentRow(len(self.question_set["questions"]) - 1)
 		self.updateQuestionDetail()
 	
 	def delQuestion(self):

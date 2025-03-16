@@ -1,4 +1,4 @@
-import sys, os, asyncio, json, re, pickle
+import sys, os, json, re, pickle, copy
 sys.path.insert(0, '..')
 
 import urllib
@@ -6,12 +6,11 @@ from urllib.parse import urlparse
 from urllib.parse import parse_qs
 
 from youtube_dl import youtube_dl
-from pydub import AudioSegment
 
 from PyQt6 import uic
 from PyQt6 import QtWidgets, QtGui
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
-from PyQt6.QtCore import Qt, QUrl, QSize, QTime
+from PyQt6.QtCore import Qt, QCoreApplication, QUrl, QSize, QTime, QRect
 
 WINDOW_TITLE = "猜歌機器人題庫編輯器"
 YOUTUBE_ERROR_MSG = "無法載入指定的 Youtube 影片"
@@ -53,6 +52,103 @@ class Slider(QtWidgets.QSlider):
 			self.sliderMoved.emit(value)
 		return super().mousePressEvent(e)
 
+
+
+# 參考 misleading_edit.ui 生成的程式碼調整
+class MisleadingAnsWindow(QtWidgets.QWidget):
+	def __init__(self, addCallback, delCallback, editCallback):
+		super().__init__()
+		
+		self.resize(480, 300)
+		self.setMinimumSize(480, 300)
+		self.setMaximumSize(480, 300)
+		self.setWindowTitle(WINDOW_TITLE)
+		
+		self.title = QtWidgets.QLabel(self)
+		self.title.setGeometry(QRect(10, 10, 141, 21))
+		font = QtGui.QFont()
+		font.setPointSize(12)
+		font.setBold(True)
+		self.title.setFont(font)
+		self.title.setText(QCoreApplication.translate("MisleadingAnsWindow", u"\u8aa4\u5c0e\u7528\u7b54\u6848\u5217\u8868", None))
+		
+		self.misleading_ans_list = QtWidgets.QListWidget(self)
+		self.misleading_ans_list.setGeometry(QRect(10, 40, 461, 221))
+		self.misleading_ans_list.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection)
+		self.misleading_ans_list.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
+		self.misleading_ans_list.itemChanged.connect(self.editMisleadingAnswer)
+		
+		self.del_mis_ans_btn = QtWidgets.QPushButton(self)
+		self.del_mis_ans_btn.setGeometry(QRect(245, 270, 75, 23))
+		self.del_mis_ans_btn.clicked.connect(self.delMisleadingAnswer)
+		self.del_mis_ans_btn.setText(QCoreApplication.translate("MisleadingAnsWindow", u"\u522a\u9664", None))
+		
+		self.add_mis_ans_btn = QtWidgets.QPushButton(self)
+		self.add_mis_ans_btn.setGeometry(QRect(160, 270, 75, 23))
+		self.add_mis_ans_btn.clicked.connect(self.addMisleadingAnswer)
+		self.add_mis_ans_btn.setText(QCoreApplication.translate("MisleadingAnsWindow", u"\u65b0\u589e", None))
+		
+		self.onAddAnswer = addCallback
+		self.onDeleteAnswer = delCallback
+		self.onEditAnswer = editCallback
+		
+	def keyPressEvent(self, event):
+		if event.key() == Qt.Key.Key_Delete:
+			if self.misleading_ans_list.hasFocus():
+				self.delMisleadingAnswer()
+	
+	# ==============================================================
+	
+	def updateMisleadingAnswerList(self, answers):
+		for i in range(len(answers)):
+			if self.misleading_ans_list.count() <= i:
+				item = QtWidgets.QListWidgetItem(answers[i])
+				item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
+				self.misleading_ans_list.addItem(item)
+			else:
+				item = self.misleading_ans_list.item(i)
+				item.setText(answers[i])
+				
+			item.setHidden(False)
+				
+		for i in range(len(answers), self.misleading_ans_list.count()):
+			item = self.misleading_ans_list.item(i)
+			item.setHidden(True)
+		
+	def addMisleadingAnswer(self):
+		if self.onAddAnswer:
+			answers = self.onAddAnswer()
+			self.updateMisleadingAnswerList(answers)
+			self.misleading_ans_list.scrollToItem(self.misleading_ans_list.item(len(answers) - 1))
+			
+	def delMisleadingAnswer(self):
+		selected = self.misleading_ans_list.selectedItems()
+		if len(selected) == 0:
+			return
+		
+		selected_idx = [self.misleading_ans_list.row(item) for item in selected]
+		# 要從後面開始刪才不會影響 index
+		selected_idx.sort()
+		
+		if self.onDeleteAnswer:
+			answers = self.onDeleteAnswer(selected_idx)
+			if not answers:
+				return
+				
+			self.misleading_ans_list.clearSelection()
+			self.updateMisleadingAnswerList(answers)
+			
+	def editMisleadingAnswer(self, item):
+		# 空字串不接受，顯示回原本內容
+		if len(item.text()) == 0:
+			return
+			
+		if self.onEditAnswer:
+			idx = self.misleading_ans_list.row(item)
+			answers = self.onEditAnswer(idx, item.text())
+			if answers:
+				self.updateMisleadingAnswerList(answers)
+
 class QuestionEditor(QtWidgets.QMainWindow):
 	def __init__(self):
 		super().__init__()
@@ -90,7 +186,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		# 提示訊息
 		self.message_box = QtWidgets.QMessageBox(self)
 
-		self.question_set = QUESTION_SET_TEMPLATE.copy()
+		self.question_set = copy.deepcopy(QUESTION_SET_TEMPLATE)
 		self.question_vid_set = set()  # 紀錄當前題庫的影片 ID 列表
 		self.current_detail_vid = ""  # 當前右邊詳細資訊對應的題目影片 ID
 		self.file_path = None
@@ -107,6 +203,10 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.action_load.triggered.connect(self.loadFile)
 		self.action_save.triggered.connect(self.save)
 		self.action_save_as.triggered.connect(self.saveAs)
+		
+		# 誤導用答案編輯視窗
+		self.misleading_ans_window = MisleadingAnsWindow(self.addMisleadingAnswer, self.delMisleadingAnswer, self.editMisleadingAnswer)
+		self.edit_misleading_btn.clicked.connect(self.misleading_ans_window.show)
 		
 		# 題目列表
 		self.question_list_widget.itemClicked.connect(self.updateQuestionDetail)
@@ -188,6 +288,9 @@ class QuestionEditor(QtWidgets.QMainWindow):
 				do_close = False
 		
 		if do_close:
+			if self.misleading_ans_window.isVisible():
+				self.misleading_ans_window.hide()
+				
 			with open("cache/data.pickle", "wb") as f:
 				pickle.dump(self.youtube_cache, f)
 			event.accept()
@@ -393,6 +496,8 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.updateQuestionDetail()
 		self.updateWindowTitle()
 		
+		self.misleading_ans_window.updateMisleadingAnswerList(self.question_set["misleadings"])
+		
 	# ====================================================================================================
 	
 	def newFile(self):
@@ -403,7 +508,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			elif result == QtWidgets.QMessageBox.StandardButton.Cancel:
 				return
 				
-		self.question_set = QUESTION_SET_TEMPLATE.copy()
+		self.question_set = copy.deepcopy(QUESTION_SET_TEMPLATE)
 		self.question_vid_set.clear()
 		self.current_detail_vid = ""
 		self.file_path = None
@@ -486,10 +591,10 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			self.message_box.critical(self, WINDOW_TITLE, YOUTUBE_ERROR_MSG)
 			return
 		
-		question = QUESTION_OBJ_TEMPLATE.copy()
+		question = copy.deepcopy(QUESTION_OBJ_TEMPLATE)
 		question["title"] = info["title"]
 		question["vid"] = vid
-		question["parts"].append([0, 3000])  # 預設片段是前 3 秒
+		question["parts"].append([0, 3000])	 # 預設片段是前 3 秒
 		question["candidates"].append(info["title"])
 		
 		target_idx = len(self.question_set["questions"])
@@ -563,6 +668,26 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		
 		idx = self.valid_answer_list.row(item)
 		question["candidates"][idx] = item.text()
+		self.dirty_flag = True
+		
+	# ====================================================================================================
+	
+	def addMisleadingAnswer(self):
+		self.question_set["misleadings"].append("(雙擊編輯答案)")
+		self.dirty_flag = True
+		
+		return self.question_set["misleadings"]
+	
+	def delMisleadingAnswer(self, selected_idx):
+		for i in range(len(selected_idx) - 1, -1, -1):
+			if selected_idx[i] < len(self.question_set["misleadings"]):
+				del self.question_set["misleadings"][selected_idx[i]]
+				self.dirty_flag = True
+		
+		return self.question_set["misleadings"]
+	
+	def editMisleadingAnswer(self, idx, new_answer):
+		self.question_set["misleadings"][idx] = new_answer
 		self.dirty_flag = True
 	
 	# ====================================================================================================
@@ -690,7 +815,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			return
 			
 		target_idx = len(question["parts"])
-		question["parts"].append([0, 3000])  # 預設片段是前 3 秒
+		question["parts"].append([0, 3000])	 # 預設片段是前 3 秒
 		self.dirty_flag = True
 		
 		# 點到新增的那個項目上

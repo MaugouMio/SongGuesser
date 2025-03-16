@@ -851,6 +851,19 @@
     <zorder>question_detail_page</zorder>
     <zorder>quest_list_page</zorder>
    </widget>
+   <widget class="QPushButton" name="edit_misleading_btn">
+    <property name="geometry">
+     <rect>
+      <x>660</x>
+      <y>10</y>
+      <width>121</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>編輯誤導用答案列表</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">

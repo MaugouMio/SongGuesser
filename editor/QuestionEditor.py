@@ -87,13 +87,6 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.youtube_url_dialog.setLabelText("輸入 Youtube 網址：")
 		self.youtube_url_dialog.setFixedSize(480, 120)
 		
-		# 輸入可接受答案的 dialog
-		self.input_ans_dialog = QtWidgets.QInputDialog()
-		self.input_ans_dialog.setInputMode(QtWidgets.QInputDialog.InputMode.TextInput)
-		self.input_ans_dialog.setWindowTitle(WINDOW_TITLE)
-		self.input_ans_dialog.setLabelText("輸入可接受答案：")
-		self.input_ans_dialog.setFixedSize(480, 120)
-		
 		# 提示訊息
 		self.message_box = QtWidgets.QMessageBox(self)
 
@@ -525,18 +518,11 @@ class QuestionEditor(QtWidgets.QMainWindow):
 	# ====================================================================================================
 	
 	def addValidAnswer(self):
-		if self.input_ans_dialog.exec() != QtWidgets.QInputDialog.DialogCode.Accepted:
-			return
-			
-		ans = self.input_ans_dialog.textValue()
-		if len(ans) == 0:
-			return
-		
 		question = self.getCurrentQuestion()
 		if not question:
 			return
 		
-		question["candidates"].append(ans)
+		question["candidates"].append("(雙擊編輯答案)")
 		self.dirty_flag = True
 		
 		self.updateQuestionAnswerList()
@@ -568,6 +554,11 @@ class QuestionEditor(QtWidgets.QMainWindow):
 	def editValidAnswer(self, item):
 		question = self.getCurrentQuestion()
 		if not question:
+			return
+		
+		# 空字串不接受，顯示回原本內容
+		if len(item.text()) == 0:
+			self.updateQuestionAnswerList()
 			return
 		
 		idx = self.valid_answer_list.row(item)

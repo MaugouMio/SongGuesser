@@ -87,6 +87,13 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.youtube_url_dialog.setLabelText("輸入 Youtube 網址：")
 		self.youtube_url_dialog.setFixedSize(480, 120)
 		
+		# 輸入可接受答案的 dialog
+		self.input_ans_dialog = QtWidgets.QInputDialog()
+		self.input_ans_dialog.setInputMode(QtWidgets.QInputDialog.InputMode.TextInput)
+		self.input_ans_dialog.setWindowTitle(WINDOW_TITLE)
+		self.input_ans_dialog.setLabelText("輸入可接受答案：")
+		self.input_ans_dialog.setFixedSize(480, 120)
+		
 		# 提示訊息
 		self.message_box = QtWidgets.QMessageBox(self)
 
@@ -112,6 +119,11 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.question_list_widget.itemClicked.connect(self.updateQuestionDetail)
 		self.add_question_btn.clicked.connect(self.addQuestion)
 		self.del_question_btn.clicked.connect(self.delQuestion)
+		
+		# 答案列表
+		self.add_ans_btn.clicked.connect(self.addValidAnswer)
+		self.del_ans_btn.clicked.connect(self.delValidAnswer)
+		self.valid_answer_list.itemChanged.connect(self.editValidAnswer)
 		
 		# 音樂播放器
 		self.media_player = QMediaPlayer()
@@ -169,6 +181,9 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			modifiers = QtWidgets.QApplication.keyboardModifiers()
 			if modifiers == Qt.KeyboardModifier.ControlModifier:
 				self.loadFile()
+		elif event.key() == Qt.Key.Key_Delete:
+			if self.valid_answer_list.hasFocus():
+				self.delValidAnswer()
 	
 	def closeEvent(self, event):
 		do_close = True
@@ -285,6 +300,27 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			item = self.question_list_widget.item(i)
 			item.setHidden(True)
 	
+	def updateQuestionAnswerList(self):
+		question = self.getCurrentQuestion()
+		if not question:
+			return
+		
+		answers = question["candidates"]
+		for i in range(len(answers)):
+			if self.valid_answer_list.count() <= i:
+				item = QtWidgets.QListWidgetItem(answers[i])
+				item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
+				self.valid_answer_list.addItem(item)
+			else:
+				item = self.valid_answer_list.item(i)
+				item.setText(answers[i])
+				
+			item.setHidden(False)
+				
+		for i in range(len(answers), self.valid_answer_list.count()):
+			item = self.valid_answer_list.item(i)
+			item.setHidden(True)
+	
 	def updateQuestionPartList(self):
 		question = self.getCurrentQuestion()
 		if not question:
@@ -346,6 +382,10 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		pixmap.loadFromData(data)
 		pixmap = pixmap.scaled(self.youtube_thumbnail.size(), Qt.AspectRatioMode.KeepAspectRatio)
 		self.youtube_thumbnail.setPixmap(pixmap)
+		
+		# 整個右邊頁面刷新時清空答案選擇，避免有隱藏項目被選取
+		self.valid_answer_list.clearSelection()
+		self.updateQuestionAnswerList()
 		
 		self.updateDurationLabel(info.get("duration", None))
 		self.media_player.setPosition(0)
@@ -457,6 +497,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		question["title"] = info["title"]
 		question["vid"] = vid
 		question["parts"].append([0, 3000])  # 預設片段是前 3 秒
+		question["candidates"].append(info["title"])
 		
 		target_idx = len(self.question_set["questions"])
 		self.question_set["questions"].append(question)
@@ -481,6 +522,58 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		del question_list[idx]
 		self.updatePage()
 		
+	# ====================================================================================================
+	
+	def addValidAnswer(self):
+		if self.input_ans_dialog.exec() != QtWidgets.QInputDialog.DialogCode.Accepted:
+			return
+			
+		ans = self.input_ans_dialog.textValue()
+		if len(ans) == 0:
+			return
+		
+		question = self.getCurrentQuestion()
+		if not question:
+			return
+		
+		question["candidates"].append(ans)
+		self.dirty_flag = True
+		
+		self.updateQuestionAnswerList()
+		self.valid_answer_list.scrollToItem(self.valid_answer_list.item(len(question["candidates"]) - 1))
+	
+	def delValidAnswer(self):
+		selected = self.valid_answer_list.selectedItems()
+		if len(selected) == 0:
+			return
+		
+		question = self.getCurrentQuestion()
+		if not question:
+			return
+		
+		selected_idx = [self.valid_answer_list.row(item) for item in selected]
+		# 要從後面開始刪才不會影響 index
+		selected_idx.sort()
+		for i in range(len(selected_idx) - 1, -1, -1):
+			# 至少要留一個答案
+			if selected_idx[i] == 0 and len(question["candidates"]) == 1:
+				break
+				
+			del question["candidates"][selected_idx[i]]
+			self.dirty_flag = True
+		
+		self.valid_answer_list.clearSelection()
+		self.updateQuestionAnswerList()
+	
+	def editValidAnswer(self, item):
+		question = self.getCurrentQuestion()
+		if not question:
+			return
+		
+		idx = self.valid_answer_list.row(item)
+		question["candidates"][idx] = item.text()
+		self.dirty_flag = True
+	
 	# ====================================================================================================
 	
 	def checkDownloadBeforePlay(self):

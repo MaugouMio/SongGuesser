@@ -205,6 +205,10 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.dragPositionWasPlaying = False
 		self.auto_pause_time = -1
 		
+		self.modify_record = []
+		self.modify_record_idx = -1
+		self.save_modify_record_idx = -1
+		
 		self.initUI()
 
 	def initUI(self):
@@ -284,6 +288,14 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			modifiers = QtWidgets.QApplication.keyboardModifiers()
 			if modifiers == Qt.KeyboardModifier.ControlModifier:
 				self.loadFile()
+		elif event.key() == Qt.Key.Key_Z:
+			modifiers = QtWidgets.QApplication.keyboardModifiers()
+			if modifiers == Qt.KeyboardModifier.ControlModifier:
+				self.undo()
+		elif event.key() == Qt.Key.Key_Y:
+			modifiers = QtWidgets.QApplication.keyboardModifiers()
+			if modifiers == Qt.KeyboardModifier.ControlModifier:
+				self.redo()
 		elif event.key() == Qt.Key.Key_Delete:
 			if self.valid_answer_list.hasFocus():
 				self.delValidAnswer()
@@ -306,6 +318,35 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			event.accept()
 		else:
 			event.ignore()
+		
+	# ====================================================================================================
+	
+	def resetModifyRecord(self):
+		self.modify_record.clear()
+		self.modify_record_idx = -1
+		self.save_modify_record_idx = -1
+	
+	def recordModify(self, record):
+		del self.modify_record[(self.modify_record_idx + 1):]
+		self.modify_record.append(record)
+		
+		if self.save_modify_record_idx > self.modify_record_idx:
+			self.save_modify_record_idx = -1
+		self.modify_record_idx += 1
+		
+		self.updateWindowTitle()
+	
+	def undo(self):
+		if self.modify_record_idx < 0:
+			return
+		
+		self.updateWindowTitle()
+	
+	def redo(self)
+		if self.modify_record_idx + 1 >= len(self.modify_record):
+			return
+		
+		self.updateWindowTitle()
 		
 	# ====================================================================================================
 
@@ -391,7 +432,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		
 	def updateWindowTitle(self):
 		if self.file_path:
-			save_note = self.dirty_flag and "[*]" or ""
+			save_note = self.save_modify_record_idx != self.modify_record_idx and "[*]" or ""
 			self.setWindowTitle(f"{WINDOW_TITLE} - {os.path.basename(self.file_path)}" + save_note)
 		else:
 			self.setWindowTitle(f"{WINDOW_TITLE} - New File")
@@ -529,7 +570,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.question_vid_set.clear()
 		self.current_detail_vid = ""
 		self.file_path = None
-		self.dirty_flag = False
+		self.resetModifyRecord()
 		
 		self.updatePage()
 	
@@ -555,7 +596,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			self.question_vid_set.add(question["vid"])
 		self.current_detail_vid = ""
 		self.file_path = file_path
-		self.dirty_flag = False
+		self.resetModifyRecord()
 		
 		self.question_list_widget.setCurrentRow(0)
 		self.updatePage()
@@ -565,7 +606,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		with open(self.file_path, "w") as f:
 			f.write(json.dumps(self.question_set))
 			
-		self.dirty_flag = False
+		self.save_modify_record_idx = self.modify_record_idx
 		self.updateWindowTitle()
 	
 	def saveAs(self):
@@ -610,6 +651,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 				progress = QtWidgets.QProgressDialog("匯入播放清單中...", "取消", 0, len(playlist), self)
 				progress.setWindowTitle(WINDOW_TITLE)
 				progress.setAutoClose(True)
+				progress.setMinimumDuration(500)
 				for i, vid in enumerate(playlist):
 					if progress.wasCanceled():
 						break

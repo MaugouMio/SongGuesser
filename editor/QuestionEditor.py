@@ -337,7 +337,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.modify_record_idx = -1
 		self.save_modify_record_idx = -1
 	
-	def recordModify(self, type, path, *, before=None, after=None):
+	def recordModify(self, path, *, before=None, after=None):
 		del self.modify_record[(self.modify_record_idx + 1):]
 		self.modify_record.append(ModifyRecord(path, before, after))
 		

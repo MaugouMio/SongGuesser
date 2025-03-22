@@ -16,6 +16,7 @@ from PyQt6.QtCore import Qt, QCoreApplication, QUrl, QSize, QTime, QRect
 WINDOW_TITLE = "猜歌機器人題庫編輯器"
 YOUTUBE_ERROR_MSG = "無法載入指定的 Youtube 影片"
 PLAYLIST_ERROR_MSG = "無法載入指定的 Youtube 播放清單"
+NEW_TEMP_ANSWER = "(雙擊編輯答案)"
 
 QUESTION_SET_TEMPLATE = {
 	"title": "我的題庫",
@@ -29,6 +30,14 @@ QUESTION_OBJ_TEMPLATE = {
 	"parts": [],
 	"candidates": []
 }
+
+
+
+class ModifyRecord:
+	def __init__(self, path, before, after):
+		self.path = path
+		self.before = before
+		self.after = after
 
 
 
@@ -200,7 +209,6 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.question_vid_set = set()  # 紀錄當前題庫的影片 ID 列表
 		self.current_detail_vid = ""  # 當前右邊詳細資訊對應的題目影片 ID
 		self.file_path = None
-		self.dirty_flag = False
 		
 		self.dragPositionWasPlaying = False
 		self.auto_pause_time = -1
@@ -302,7 +310,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 	
 	def closeEvent(self, event):
 		do_close = True
-		if self.dirty_flag:
+		if self.isDirty():
 			result = self.check_save.exec()
 			if result == QtWidgets.QMessageBox.StandardButton.Yes:
 				self.save()
@@ -321,14 +329,17 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		
 	# ====================================================================================================
 	
+	def isDirty(self):
+		return self.save_modify_record_idx != self.modify_record_idx
+	
 	def resetModifyRecord(self):
 		self.modify_record.clear()
 		self.modify_record_idx = -1
 		self.save_modify_record_idx = -1
 	
-	def recordModify(self, record):
+	def recordModify(self, type, path, *, before=None, after=None):
 		del self.modify_record[(self.modify_record_idx + 1):]
-		self.modify_record.append(record)
+		self.modify_record.append(ModifyRecord(path, before, after))
 		
 		if self.save_modify_record_idx > self.modify_record_idx:
 			self.save_modify_record_idx = -1
@@ -340,13 +351,45 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		if self.modify_record_idx < 0:
 			return
 		
-		self.updateWindowTitle()
+		record = self.modify_record[self.modify_record_idx]
+		self.modify_record_idx -= 1
+		
+		target = self.question_set
+		for i in range(len(record.path) - 1):
+			target = target[record.path[i]]
+			
+		if type(target[record.path[-1]]) is list:  # means swap
+			target[record.path[-1][0]], target[record.path[-1][1]] = target[record.path[-1][1]], target[record.path[-1][0]]
+		elif record.before == None:
+			del target[record.path[-1]]
+		elif record.after == None:
+			target.insert(record.path[-1], copy.deepcopy(record.before))
+		else:
+			target[record.path[-1]] = copy.deepcopy(record.before)
+			
+		self.updatePage()
 	
-	def redo(self)
+	def redo(self):
 		if self.modify_record_idx + 1 >= len(self.modify_record):
 			return
 		
-		self.updateWindowTitle()
+		record = self.modify_record[self.modify_record_idx + 1]
+		self.modify_record_idx += 1
+		
+		target = self.question_set
+		for i in range(len(record.path) - 1):
+			target = target[record.path[i]]
+			
+		if type(target[record.path[-1]]) is list:  # means swap
+			target[record.path[-1][0]], target[record.path[-1][1]] = target[record.path[-1][1]], target[record.path[-1][0]]
+		elif record.after == None:
+			del target[record.path[-1]]
+		elif record.before == None:
+			target.insert(record.path[-1], copy.deepcopy(record.after))
+		else:
+			target[record.path[-1]] = copy.deepcopy(record.after)
+		
+		self.updatePage()
 		
 	# ====================================================================================================
 
@@ -413,20 +456,20 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		question_list = self.question_set["questions"]
 		idx = self.question_list_widget.currentRow()
 		if len(question_list) == 0 or idx >= len(question_list):
-			return None
-		return question_list[idx]
+			return None, -1
+		return question_list[idx], idx
 	
 	def getCurrentQuestionPart(self):
-		question = self.getCurrentQuestion()
+		question, qidx = self.getCurrentQuestion()
 		if not question:
-			return None
+			return None, -1, -1
 			
 		question_parts = question["parts"]
 		idx = self.part_list_widget.currentRow()
 		if len(question_parts) == 0 or idx >= len(question_parts):
-			return None
+			return None, -1, -1
 			
-		return question_parts[idx]
+		return question_parts[idx], qidx, idx
 		
 	# ====================================================================================================
 		
@@ -455,7 +498,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			item.setHidden(True)
 	
 	def updateQuestionAnswerList(self):
-		question = self.getCurrentQuestion()
+		question, qidx = self.getCurrentQuestion()
 		if not question:
 			return
 		
@@ -476,7 +519,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			item.setHidden(True)
 	
 	def updateQuestionPartList(self):
-		question = self.getCurrentQuestion()
+		question, qidx = self.getCurrentQuestion()
 		if not question:
 			return
 		
@@ -497,11 +540,11 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			item.setHidden(True)
 		
 	def updateQuestionPartSetting(self):
-		question = self.getCurrentQuestion()
+		question, qidx = self.getCurrentQuestion()
 		if not question:
 			return
 		
-		question_part = self.getCurrentQuestionPart()
+		question_part, qidx, idx = self.getCurrentQuestionPart()
 		if not question_part:
 			return
 		
@@ -509,7 +552,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.end_time.setTime(getQTime(question_part[1]))
 	
 	def updateQuestionDetail(self):
-		question = self.getCurrentQuestion()
+		question, qidx = self.getCurrentQuestion()
 		if not question:
 			self.question_detail_page.setEnabled(False)
 			return
@@ -559,7 +602,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 	# ====================================================================================================
 	
 	def newFile(self):
-		if self.dirty_flag:
+		if self.isDirty():
 			result = self.check_save.exec()
 			if result == QtWidgets.QMessageBox.StandardButton.Yes:
 				self.save()
@@ -575,7 +618,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.updatePage()
 	
 	def loadFile(self):
-		if self.dirty_flag:
+		if self.isDirty():
 			result = self.check_save.exec()
 			if result == QtWidgets.QMessageBox.StandardButton.Yes:
 				self.save()
@@ -619,7 +662,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 	
 	def save(self):
 		if self.file_path:
-			if self.dirty_flag:
+			if self.isDirty():
 				self.saveReal()
 		else:
 			self.saveAs()
@@ -684,6 +727,8 @@ class QuestionEditor(QtWidgets.QMainWindow):
 				for question in real_add_list:
 					self.question_set["questions"].append(question)
 					self.question_vid_set.add(question["vid"])
+					
+					self.recordModify(["questions", len(self.question_set["questions"]) - 1], after = copy.deepcopy(question))
 				
 				self.message_box.information(self, WINDOW_TITLE, f"已匯入播放清單的 {len(playlist)} 部影片\n已忽略重複的 {duplicate_count} 部影片\n共 {invalid_count} 部影片無法載入")
 			else:
@@ -709,8 +754,8 @@ class QuestionEditor(QtWidgets.QMainWindow):
 				self.question_set["questions"].append(question)
 				self.question_vid_set.add(vid)
 				
-		self.dirty_flag = True
-		
+				self.recordModify(["questions", len(self.question_set["questions"]) - 1], after = copy.deepcopy(question))
+				
 		# 點到新增的那個項目上
 		self.updateQuestionList()
 		self.question_list_widget.setCurrentRow(len(self.question_set["questions"]) - 1)
@@ -725,19 +770,22 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		if idx >= len(question_list):
 			return
 		
+		self.recordModify(["questions", idx], before = copy.deepcopy(question_list[idx]))
+		
 		self.question_vid_set.remove(question_list[idx]["vid"])
 		del question_list[idx]
+		
 		self.updatePage()
 		
 	# ====================================================================================================
 	
 	def addValidAnswer(self):
-		question = self.getCurrentQuestion()
+		question, qidx = self.getCurrentQuestion()
 		if not question:
 			return
 		
-		question["candidates"].append("(雙擊編輯答案)")
-		self.dirty_flag = True
+		question["candidates"].append(NEW_TEMP_ANSWER)
+		self.recordModify(["questions", qidx, "candidates", len(question["candidates"]) - 1], after = NEW_TEMP_ANSWER)
 		
 		self.updateQuestionAnswerList()
 		self.valid_answer_list.scrollToItem(self.valid_answer_list.item(len(question["candidates"]) - 1))
@@ -747,7 +795,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		if len(selected) == 0:
 			return
 		
-		question = self.getCurrentQuestion()
+		question, qidx = self.getCurrentQuestion()
 		if not question:
 			return
 		
@@ -759,14 +807,14 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			if selected_idx[i] == 0 and len(question["candidates"]) == 1:
 				break
 				
+			self.recordModify(["questions", qidx, "candidates", selected_idx[i]], before = question["candidates"][selected_idx[i]])
 			del question["candidates"][selected_idx[i]]
-			self.dirty_flag = True
 		
 		self.valid_answer_list.clearSelection()
 		self.updateQuestionAnswerList()
 	
 	def editValidAnswer(self, item):
-		question = self.getCurrentQuestion()
+		question, qidx = self.getCurrentQuestion()
 		if not question:
 			return
 		
@@ -775,35 +823,36 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			self.updateQuestionAnswerList()
 			return
 		
+		self.recordModify(["questions", qidx, "candidates", idx], before = question["candidates"][idx], after = item.text())
+		
 		idx = self.valid_answer_list.row(item)
 		question["candidates"][idx] = item.text()
-		self.dirty_flag = True
 		
 	# ====================================================================================================
 	
 	def addMisleadingAnswer(self):
-		self.question_set["misleadings"].append("(雙擊編輯答案)")
-		self.dirty_flag = True
+		self.question_set["misleadings"].append(NEW_TEMP_ANSWER)
+		self.recordModify(["misleadings", len(self.question_set["misleadings"]) - 1], after = NEW_TEMP_ANSWER)
 		
 		return self.question_set["misleadings"]
 	
 	def delMisleadingAnswer(self, selected_idx):
 		for i in range(len(selected_idx) - 1, -1, -1):
 			if selected_idx[i] < len(self.question_set["misleadings"]):
+				self.recordModify(["misleadings", selected_idx[i]], before = self.question_set["misleadings"][selected_idx[i]])
 				del self.question_set["misleadings"][selected_idx[i]]
-				self.dirty_flag = True
 		
 		return self.question_set["misleadings"]
 	
 	def editMisleadingAnswer(self, idx, new_answer):
+		self.recordModify(["misleadings", idx], before = self.question_set["misleadings"][idx], after = new_answer)
 		self.question_set["misleadings"][idx] = new_answer
-		self.dirty_flag = True
 	
 	# ====================================================================================================
 	
 	def checkDownloadBeforePlay(self):
 		if self.media_player.source().isEmpty():
-			question = self.getCurrentQuestion()
+			question, qidx = self.getCurrentQuestion()
 			if not question:
 				return
 			
@@ -823,7 +872,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			self.media_player.play()
 
 	def playPart(self):
-		question_part = self.getCurrentQuestionPart()
+		question_part, qidx, idx = self.getCurrentQuestionPart()
 		if not question_part:
 			return
 			
@@ -832,7 +881,6 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		
 		self.media_player.play()
 		self.media_player.setPosition(question_part[0])
-		self.play_button.setText("∎∎")
 		
 		self.auto_pause_time = question_part[1]
 	
@@ -856,7 +904,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			self.duration_label.setText("--:--.---")
 
 	def durationChanged(self, duration):
-		question = self.getCurrentQuestion()
+		question, qidx = self.getCurrentQuestion()
 		if not question:
 			return
 		
@@ -897,35 +945,39 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.begin_time.setTime(nowTime)
 
 	def beginTimeChanged(self, qtime):
-		question_part = self.getCurrentQuestionPart()
+		question_part, qidx, idx = self.getCurrentQuestionPart()
 		if not question_part:
 			return
 		
-		question_part[0] = qtime.minute() * 60000 + qtime.second() * 1000 + qtime.msec()
-		self.dirty_flag = True
+		ms = qtime.minute() * 60000 + qtime.second() * 1000 + qtime.msec()
+		self.recordModify(["questions", qidx, "parts", idx, 0], before = question_part[0], after = ms)
+		question_part[0] = ms
 
 	def setEndTime(self):
 		nowTime = getQTime(self.media_player.position())
 		self.end_time.setTime(nowTime)
 
 	def endTimeChanged(self, qtime):
-		question_part = self.getCurrentQuestionPart()
+		question_part, qidx, idx = self.getCurrentQuestionPart()
 		if not question_part:
 			return
 		
-		question_part[1] = qtime.minute() * 60000 + qtime.second() * 1000 + qtime.msec()
-		self.dirty_flag = True
+		ms = qtime.minute() * 60000 + qtime.second() * 1000 + qtime.msec()
+		self.recordModify(["questions", qidx, "parts", idx, 1], before = question_part[1], after = ms)
+		question_part[1] = ms
 		
 	# ====================================================================================================
 	
 	def addQuestionPart(self):
-		question = self.getCurrentQuestion()
+		question, qidx = self.getCurrentQuestion()
 		if not question:
 			return
-			
+		
+		DEFAULT_PART = [0, 3000]  # 預設片段是前 3 秒
 		target_idx = len(question["parts"])
-		question["parts"].append([0, 3000])	 # 預設片段是前 3 秒
-		self.dirty_flag = True
+		question["parts"].append(DEFAULT_PART)
+		
+		self.recordModify(["questions", qidx, "parts", target_idx], after = copy.deepcopy(DEFAULT_PART))
 		
 		# 點到新增的那個項目上
 		self.updateQuestionPartList()
@@ -933,7 +985,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.updateQuestionPartSetting()
 	
 	def delQuestionPart(self):
-		question = self.getCurrentQuestion()
+		question, qidx = self.getCurrentQuestion()
 		if not question:
 			return
 			
@@ -945,8 +997,8 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		if idx >= len(question["parts"]):
 			return
 			
+		self.recordModify(["questions", qidx, "parts", idx], before = copy.deepcopy(question["parts"][idx]))
 		del question["parts"][idx]
-		self.dirty_flag = True
 		
 		self.updateQuestionPartList()
 		if idx == len(question["parts"]):  # 刪掉最後一個時一樣幫他選最後一個
@@ -954,7 +1006,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.updateQuestionPartSetting()
 	
 	def movePartLeft(self):
-		question = self.getCurrentQuestion()
+		question, qidx = self.getCurrentQuestion()
 		if not question:
 			return
 			
@@ -962,13 +1014,13 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		if idx == 0 or idx >= len(question["parts"]):
 			return
 			
+		self.recordModify(["questions", qidx, "parts", [idx, idx - 1]])
 		question["parts"][idx], question["parts"][idx - 1] = question["parts"][idx - 1], question["parts"][idx]
-		self.dirty_flag = True
 		
 		self.part_list_widget.setCurrentRow(idx - 1)
 	
 	def movePartRight(self):
-		question = self.getCurrentQuestion()
+		question, qidx = self.getCurrentQuestion()
 		if not question:
 			return
 			
@@ -976,8 +1028,8 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		if idx + 1 >= len(question["parts"]):
 			return
 			
+		self.recordModify(["questions", qidx, "parts", [idx, idx + 1]])
 		question["parts"][idx], question["parts"][idx + 1] = question["parts"][idx + 1], question["parts"][idx]
-		self.dirty_flag = True
 		
 		self.part_list_widget.setCurrentRow(idx + 1)
 

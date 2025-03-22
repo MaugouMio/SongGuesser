@@ -36,8 +36,8 @@ QUESTION_OBJ_TEMPLATE = {
 class ModifyRecord:
 	def __init__(self, path, before, after):
 		self.path = path
-		self.before = before
-		self.after = after
+		self.before = copy.deepcopy(before)
+		self.after = copy.deepcopy(after)
 
 
 
@@ -338,6 +338,9 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.save_modify_record_idx = -1
 	
 	def recordModify(self, path, *, before=None, after=None):
+		if type(path[-1]) is not list and before == after:
+			return
+			
 		del self.modify_record[(self.modify_record_idx + 1):]
 		self.modify_record.append(ModifyRecord(path, before, after))
 		
@@ -358,7 +361,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		for i in range(len(record.path) - 1):
 			target = target[record.path[i]]
 			
-		if type(target[record.path[-1]]) is list:  # means swap
+		if type(record.path[-1]) is list:  # means swap
 			target[record.path[-1][0]], target[record.path[-1][1]] = target[record.path[-1][1]], target[record.path[-1][0]]
 		elif record.before == None:
 			del target[record.path[-1]]
@@ -367,6 +370,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		else:
 			target[record.path[-1]] = copy.deepcopy(record.before)
 			
+		self.current_detail_vid = -1
 		self.updatePage()
 	
 	def redo(self):
@@ -380,7 +384,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		for i in range(len(record.path) - 1):
 			target = target[record.path[i]]
 			
-		if type(target[record.path[-1]]) is list:  # means swap
+		if type(record.path[-1]) is list:  # means swap
 			target[record.path[-1][0]], target[record.path[-1][1]] = target[record.path[-1][1]], target[record.path[-1][0]]
 		elif record.after == None:
 			del target[record.path[-1]]
@@ -389,6 +393,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		else:
 			target[record.path[-1]] = copy.deepcopy(record.after)
 		
+		self.current_detail_vid = -1
 		self.updatePage()
 		
 	# ====================================================================================================
@@ -731,7 +736,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 				self.question_set["questions"].append(question)
 				self.question_vid_set.add(question["vid"])
 				
-				self.recordModify(["questions", len(self.question_set["questions"]) - 1], after = copy.deepcopy(question))
+				self.recordModify(["questions", len(self.question_set["questions"]) - 1], after = question)
 			
 			self.message_box.information(self, WINDOW_TITLE, f"已匯入播放清單的 {len(playlist)} 部影片\n已忽略重複的 {duplicate_count} 部影片\n共 {invalid_count} 部影片無法載入")
 		else:
@@ -757,7 +762,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			self.question_set["questions"].append(question)
 			self.question_vid_set.add(vid)
 			
-			self.recordModify(["questions", len(self.question_set["questions"]) - 1], after = copy.deepcopy(question))
+			self.recordModify(["questions", len(self.question_set["questions"]) - 1], after = question)
 				
 		# 點到新增的那個項目上
 		self.updateQuestionList()
@@ -773,7 +778,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		if idx >= len(question_list):
 			return
 		
-		self.recordModify(["questions", idx], before = copy.deepcopy(question_list[idx]))
+		self.recordModify(["questions", idx], before = question_list[idx])
 		
 		self.question_vid_set.remove(question_list[idx]["vid"])
 		del question_list[idx]
@@ -826,9 +831,8 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			self.updateQuestionAnswerList()
 			return
 		
-		self.recordModify(["questions", qidx, "candidates", idx], before = question["candidates"][idx], after = item.text())
-		
 		idx = self.valid_answer_list.row(item)
+		self.recordModify(["questions", qidx, "candidates", idx], before = question["candidates"][idx], after = item.text())
 		question["candidates"][idx] = item.text()
 		
 	# ====================================================================================================
@@ -980,7 +984,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		target_idx = len(question["parts"])
 		question["parts"].append(DEFAULT_PART)
 		
-		self.recordModify(["questions", qidx, "parts", target_idx], after = copy.deepcopy(DEFAULT_PART))
+		self.recordModify(["questions", qidx, "parts", target_idx], after = DEFAULT_PART)
 		
 		# 點到新增的那個項目上
 		self.updateQuestionPartList()
@@ -1000,7 +1004,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		if idx >= len(question["parts"]):
 			return
 			
-		self.recordModify(["questions", qidx, "parts", idx], before = copy.deepcopy(question["parts"][idx]))
+		self.recordModify(["questions", qidx, "parts", idx], before = question["parts"][idx])
 		del question["parts"][idx]
 		
 		self.updateQuestionPartList()

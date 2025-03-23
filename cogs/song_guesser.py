@@ -10,7 +10,7 @@ from pydub import AudioSegment
 from discord.ext import commands
 from discord import app_commands
 
-from cogs.format_checker import validateQuestionFormat
+from cogs.format_checker import *
 
 # Suppress noise about console usage from errors
 youtube_dl.utils.bug_reports_message = lambda: ''
@@ -118,7 +118,7 @@ class GameData:
 	@staticmethod
 	def initialize_question_set(question_set):
 		result = validateQuestionFormat(question_set)
-		if result != 0:
+		if result != FormatErrorCode.OK:
 			return result
 		
 		# generate candidate answer set

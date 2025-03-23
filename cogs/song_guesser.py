@@ -319,6 +319,10 @@ class SongGuesser(commands.Cog):
 		if not interaction.user.voice or interaction.user.voice.channel != game.channel:
 			await interaction.response.send_message(f"你必須在遊戲進行中的 <#{game.channel.id}> 頻道才能使用遊戲指令", ephemeral=True)
 			return None
+			
+		if interaction.channel != game.text_channel:
+			await interaction.response.send_message(f"你必須在遊戲進行中的 <#{game.text_channel.id}> 頻道才能使用遊戲指令", ephemeral=True)
+			return None
 		
 		return game
 	

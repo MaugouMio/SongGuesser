@@ -67,7 +67,7 @@ class Slider(QtWidgets.QSlider):
 
 # 參考 misleading_edit.ui 生成的程式碼調整
 class MisleadingAnsWindow(QtWidgets.QWidget):
-	def __init__(self, addCallback, delCallback, editCallback):
+	def __init__(self, addCallback, delCallback, editCallback, undo, redo):
 		super().__init__()
 		
 		self.resize(480, 300)
@@ -102,11 +102,21 @@ class MisleadingAnsWindow(QtWidgets.QWidget):
 		self.onAddAnswer = addCallback
 		self.onDeleteAnswer = delCallback
 		self.onEditAnswer = editCallback
+		self.undo = undo
+		self.redo = redo
 		
 	def keyPressEvent(self, event):
 		if event.key() == Qt.Key.Key_Delete:
 			if self.misleading_ans_list.hasFocus():
 				self.delMisleadingAnswer()
+		elif event.key() == Qt.Key.Key_Z:
+			modifiers = QtWidgets.QApplication.keyboardModifiers()
+			if modifiers == Qt.KeyboardModifier.ControlModifier:
+				self.undo()
+		elif event.key() == Qt.Key.Key_Y:
+			modifiers = QtWidgets.QApplication.keyboardModifiers()
+			if modifiers == Qt.KeyboardModifier.ControlModifier:
+				self.redo()
 	
 	# ==============================================================
 	
@@ -210,12 +220,16 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.current_detail_vid = ""  # 當前右邊詳細資訊對應的題目影片 ID
 		self.file_path = None
 		
+		self.need_reload_media = False
 		self.dragPositionWasPlaying = False
 		self.auto_pause_time = -1
 		
 		self.modify_record = []
 		self.modify_record_idx = -1
 		self.save_modify_record_idx = -1
+		
+		self.auto_select_qustion_idx = -1
+		self.auto_select_qustion_part_idx = -1
 		
 		self.initUI()
 
@@ -227,7 +241,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.action_save_as.triggered.connect(self.saveAs)
 		
 		# 誤導用答案編輯視窗
-		self.misleading_ans_window = MisleadingAnsWindow(self.addMisleadingAnswer, self.delMisleadingAnswer, self.editMisleadingAnswer)
+		self.misleading_ans_window = MisleadingAnsWindow(self.addMisleadingAnswer, self.delMisleadingAnswer, self.editMisleadingAnswer, self.undo, self.redo)
 		self.edit_misleading_btn.clicked.connect(self.misleading_ans_window.show)
 		
 		# 題目列表
@@ -359,18 +373,30 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		
 		target = self.question_set
 		for i in range(len(record.path) - 1):
+			if record.path[i] == "questions":
+				self.auto_select_qustion_idx = record.path[i + 1]
+			elif record.path[i] == "parts":
+				if type(record.path[i + 1]) is list:
+					self.auto_select_qustion_part_idx = record.path[i + 1][0]
+				else:
+					self.auto_select_qustion_part_idx = record.path[i + 1]
+			elif record.path[i] == "misleadings":
+				self.misleading_ans_window.show()
 			target = target[record.path[i]]
 			
 		if type(record.path[-1]) is list:  # means swap
 			target[record.path[-1][0]], target[record.path[-1][1]] = target[record.path[-1][1]], target[record.path[-1][0]]
 		elif record.before == None:
+			if len(record.path) == 2 and record.path[0] == "questions":  # undo add question
+				self.question_vid_set.remove(target[record.path[-1]]["vid"])
 			del target[record.path[-1]]
 		elif record.after == None:
+			if len(record.path) == 2 and record.path[0] == "questions":  # undo remove question
+				self.question_vid_set.add(record.before["vid"])
 			target.insert(record.path[-1], copy.deepcopy(record.before))
 		else:
 			target[record.path[-1]] = copy.deepcopy(record.before)
 			
-		self.current_detail_vid = -1
 		self.updatePage()
 	
 	def redo(self):
@@ -382,18 +408,30 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		
 		target = self.question_set
 		for i in range(len(record.path) - 1):
+			if record.path[i] == "questions":
+				self.auto_select_qustion_idx = record.path[i + 1]
+			elif record.path[i] == "parts":
+				if type(record.path[i + 1]) is list:
+					self.auto_select_qustion_part_idx = record.path[i + 1][1]
+				else:
+					self.auto_select_qustion_part_idx = record.path[i + 1]
+			elif record.path[i] == "misleadings":
+				self.misleading_ans_window.show()
 			target = target[record.path[i]]
 			
 		if type(record.path[-1]) is list:  # means swap
 			target[record.path[-1][0]], target[record.path[-1][1]] = target[record.path[-1][1]], target[record.path[-1][0]]
 		elif record.after == None:
+			if len(record.path) == 2 and record.path[0] == "questions":  # redo remove question
+				self.question_vid_set.remove(target[record.path[-1]]["vid"])
 			del target[record.path[-1]]
 		elif record.before == None:
+			if len(record.path) == 2 and record.path[0] == "questions":  # redo add question
+				self.question_vid_set.add(record.after["vid"])
 			target.insert(record.path[-1], copy.deepcopy(record.after))
 		else:
 			target[record.path[-1]] = copy.deepcopy(record.after)
 		
-		self.current_detail_vid = -1
 		self.updatePage()
 		
 	# ====================================================================================================
@@ -501,6 +539,15 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		for i in range(len(question_list), self.question_list_widget.count()):
 			item = self.question_list_widget.item(i)
 			item.setHidden(True)
+		
+		if self.auto_select_qustion_idx >= 0:
+			if self.auto_select_qustion_idx >= len(question_list):
+				self.auto_select_qustion_idx = len(question_list) - 1
+			if self.question_list_widget.currentRow() != self.auto_select_qustion_idx and self.auto_select_qustion_part_idx < 0:
+				self.auto_select_qustion_part_idx = 0
+				
+			self.question_list_widget.setCurrentRow(self.auto_select_qustion_idx)
+			self.auto_select_qustion_idx = -1
 	
 	def updateQuestionAnswerList(self):
 		question, qidx = self.getCurrentQuestion()
@@ -559,41 +606,49 @@ class QuestionEditor(QtWidgets.QMainWindow):
 	def updateQuestionDetail(self):
 		question, qidx = self.getCurrentQuestion()
 		if not question:
+			self.media_player.pause()
 			self.question_detail_page.setEnabled(False)
+			self.current_detail_vid = ""
 			return
-		
-		vid = question["vid"]
-		if vid == self.current_detail_vid:
-			return
-		self.current_detail_vid = vid
-			
-		# 先重置播放器
-		self.media_player.setSource(QUrl())
-		self.play_button.setText("▶")
 		
 		self.question_detail_page.setEnabled(True)
 		
-		info = self.getYoutubeInfo(vid)
-		# 更新右邊資訊
-		self.youtube_title.setText(info["title"])
-		self.youtube_author.setText(info["author"])
-		self.youtube_url.setText(f"https://www.youtube.com/watch?v={vid}")
-		
-		data = urllib.request.urlopen(info["thumbnail"]).read()
-		pixmap = QtGui.QPixmap()
-		pixmap.loadFromData(data)
-		pixmap = pixmap.scaled(self.youtube_thumbnail.size(), Qt.AspectRatioMode.KeepAspectRatio)
-		self.youtube_thumbnail.setPixmap(pixmap)
+		vid = question["vid"]
+		if vid != self.current_detail_vid:
+			self.need_reload_media = True
+			self.media_player.stop()
+			
+			info = self.getYoutubeInfo(vid)
+			# 更新右邊資訊
+			self.youtube_title.setText(info["title"])
+			self.youtube_author.setText(info["author"])
+			self.youtube_url.setText(f"https://www.youtube.com/watch?v={vid}")
+			
+			data = urllib.request.urlopen(info["thumbnail"]).read()
+			pixmap = QtGui.QPixmap()
+			pixmap.loadFromData(data)
+			pixmap = pixmap.scaled(self.youtube_thumbnail.size(), Qt.AspectRatioMode.KeepAspectRatio)
+			self.youtube_thumbnail.setPixmap(pixmap)
+			
+			self.updateDurationLabel(info.get("duration", None))
+			
+		self.current_detail_vid = vid
 		
 		# 整個右邊頁面刷新時清空答案選擇，避免有隱藏項目被選取
 		self.valid_answer_list.clearSelection()
 		self.updateQuestionAnswerList()
 		
-		self.updateDurationLabel(info.get("duration", None))
-		self.media_player.setPosition(0)
-		
 		self.updateQuestionPartList()
-		self.part_list_widget.setCurrentRow(0)
+		
+		if self.auto_select_qustion_part_idx >= 0:
+			if self.auto_select_qustion_part_idx >= len(question["parts"]):
+				self.auto_select_qustion_part_idx = len(question["parts"]) - 1
+				
+			self.part_list_widget.setCurrentRow(self.auto_select_qustion_part_idx)
+			self.auto_select_qustion_part_idx = -1
+		else:
+			self.part_list_widget.setCurrentRow(0)
+			
 		self.updateQuestionPartSetting()
 	
 	def updatePage(self):
@@ -783,6 +838,9 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.question_vid_set.remove(question_list[idx]["vid"])
 		del question_list[idx]
 		
+		if idx >= len(question_list):
+			self.question_list_widget.setCurrentRow(len(question_list) - 1)
+		self.part_list_widget.setCurrentRow(0)
 		self.updatePage()
 		
 	# ====================================================================================================
@@ -858,7 +916,8 @@ class QuestionEditor(QtWidgets.QMainWindow):
 	# ====================================================================================================
 	
 	def checkDownloadBeforePlay(self):
-		if self.media_player.source().isEmpty():
+		if self.need_reload_media:
+			self.need_reload_media = False
 			question, qidx = self.getCurrentQuestion()
 			if not question:
 				return

@@ -363,6 +363,17 @@ class SongGuesser(commands.Cog):
 		game.current_question_part += 1
 		await self.play_part(game)
 	
+	@app_commands.command(name = "重播片段")
+	async def again(self, interaction):
+		"""[遊戲指令] 重新播放當前的音樂片段"""
+		
+		game = await self.game_command_pre_check(interaction)
+		if not game:
+			return
+			
+		await interaction.response.send_message("已成功執行指令，請稍候")
+		await self.play_part(game)
+	
 	@app_commands.command(name = "猜")
 	async def guess(self, interaction, answer: str):
 		"""[遊戲指令] 猜測當前題目的答案"""

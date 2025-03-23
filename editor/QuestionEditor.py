@@ -223,6 +223,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		
 		self.need_reload_media = False
 		self.dragPositionWasPlaying = False
+		self.next_media_start_time = None
 		self.auto_pause_time = -1
 		
 		self.modify_record = []
@@ -276,6 +277,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.media_player.positionChanged.connect(self.positionChanged)
 		self.media_player.durationChanged.connect(self.durationChanged)
 		self.media_player.playbackStateChanged.connect(self.playbackStateChanged)
+		self.media_player.mediaStatusChanged.connect(self.mediaStatusChanged)
 		
 		self.set_begin_btn.clicked.connect(self.setBeginTime)
 		self.begin_time.setTime(QTime(0, 0))
@@ -927,7 +929,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 	
 	# ====================================================================================================
 	
-	def checkDownloadBeforePlay(self):
+	def checkDownloadBeforePlay(self, start_time = None):
 		if self.need_reload_media:
 			self.need_reload_media = False
 			question, qidx = self.getCurrentQuestion()
@@ -937,6 +939,13 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			vid = question["vid"]
 			self.downloadYoutube(vid)
 			self.media_player.setSource(QUrl.fromLocalFile(f"cache/{vid}"))
+			if start_time != None:
+				self.next_media_start_time = start_time
+				self.media_player.play()
+		else:
+			if start_time != None:
+				self.media_player.play()
+				self.media_player.setPosition(start_time)
 
 	def playPause(self):
 		# 先下載並載入音檔
@@ -955,11 +964,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			return
 			
 		# 先下載並載入音檔
-		self.checkDownloadBeforePlay()
-		
-		self.media_player.play()
-		self.media_player.setPosition(question_part[0])
-		
+		self.checkDownloadBeforePlay(question_part[0])
 		self.auto_pause_time = question_part[1]
 	
 	def playbackStateChanged(self, newState):
@@ -967,6 +972,13 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			self.play_button.setText("∎∎")
 		else:
 			self.play_button.setText("▶")
+	
+	def mediaStatusChanged(self, newState):
+		# 加載完自動播放指定位置
+		if newState == QMediaPlayer.MediaStatus.BufferedMedia:
+			if self.next_media_start_time != None:
+				self.media_player.setPosition(self.next_media_start_time)
+				self.next_media_start_time = None
 
 	def positionChanged(self, position):
 		if self.auto_pause_time >= 0 and position >= self.auto_pause_time:

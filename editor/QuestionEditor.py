@@ -242,6 +242,10 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.action_save.triggered.connect(self.save)
 		self.action_save_as.triggered.connect(self.saveAs)
 		
+		# 題庫名稱與作者
+		self.question_set_title.editingFinished.connect(self.editTitle)
+		self.question_set_author.editingFinished.connect(self.editAuthor)
+		
 		# 誤導用答案編輯視窗
 		self.misleading_ans_window = MisleadingAnsWindow(self.addMisleadingAnswer, self.delMisleadingAnswer, self.editMisleadingAnswer, self.undo, self.redo)
 		self.edit_misleading_btn.clicked.connect(self.misleading_ans_window.show)
@@ -521,10 +525,10 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		
 	def updateWindowTitle(self):
 		if self.file_path:
-			save_note = self.save_modify_record_idx != self.modify_record_idx and "[*]" or ""
-			self.setWindowTitle(f"{WINDOW_TITLE} - {os.path.basename(self.file_path)}" + save_note)
+			save_note = self.save_modify_record_idx != self.modify_record_idx and "*" or ""
+			self.setWindowTitle(f"{save_note}{os.path.basename(self.file_path)} - {WINDOW_TITLE}")
 		else:
-			self.setWindowTitle(f"{WINDOW_TITLE} - New File")
+			self.setWindowTitle(f"New File - {WINDOW_TITLE}")
 		
 	def updateQuestionList(self):
 		question_list = self.question_set["questions"]
@@ -654,8 +658,13 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			
 		self.updateQuestionPartSetting()
 	
+	def updateTitleAuthor(self):
+		self.question_set_title.setText(self.question_set["title"])
+		self.question_set_author.setText(self.question_set["author"])
+	
 	def updatePage(self):
 		# 更新整個畫面內容
+		self.updateTitleAuthor()
 		self.updateQuestionList()
 		self.updateQuestionDetail()
 		self.updateWindowTitle()
@@ -740,6 +749,16 @@ class QuestionEditor(QtWidgets.QMainWindow):
 				self.saveReal()
 		else:
 			self.saveAs()
+		
+	# ====================================================================================================
+	
+	def editTitle(self):
+		self.recordModify(["title"], before = self.question_set["title"], after = self.question_set_title.text())
+		self.question_set["title"] = self.question_set_title.text()
+		
+	def editAuthor(self):
+		self.recordModify(["author"], before = self.question_set["author"], after = self.question_set_author.text())
+		self.question_set["author"] = self.question_set_author.text()
 		
 	# ====================================================================================================
 	

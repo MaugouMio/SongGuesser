@@ -1,5 +1,6 @@
 import sys, os, json, re, pickle, copy
 sys.path.insert(0, '..')
+from cogs.format_checker import validateQuestionFormat
 
 import urllib
 from urllib.parse import urlparse
@@ -691,7 +692,10 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			
 		with open(file_path, "r", encoding="utf8") as f:
 			question_set = json.loads(f.read())
-		# TODO: 檢查檔案格式，不合理跳警告並 return
+			result = validateQuestionFormat(question_set)
+			if result != 0 and result != 4:  # 只接受題目長度為 0 的錯誤類型
+				self.message_box.critical(self, WINDOW_TITLE, f"題庫檔案格式有誤，錯誤代碼：{result}")
+				return
 		
 		self.question_set = question_set
 		self.question_vid_set.clear()
@@ -701,11 +705,19 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.file_path = file_path
 		self.resetModifyRecord()
 		
-		self.question_list_widget.setCurrentRow(0)
+		self.auto_select_qustion_idx = 0
+		self.auto_select_qustion_part_idx = 0
 		self.updatePage()
 	
 	def saveReal(self):
-		# TODO: 檢查檔案格式，不合理跳警告
+		result = validateQuestionFormat(self.question_set)
+		if result != 0:
+			if result == 4:  # 正常應該只會有這個 case
+				self.message_box.warning(self, WINDOW_TITLE, "題庫中沒有任何題目，將無法使用這份題庫進行遊戲")
+			else:
+				self.message_box.critical(self, WINDOW_TITLE, f"題庫檔案格式有誤，錯誤代碼：{result}")
+				return
+			
 		with open(self.file_path, "w") as f:
 			f.write(json.dumps(self.question_set))
 			

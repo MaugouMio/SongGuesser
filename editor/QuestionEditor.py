@@ -34,6 +34,36 @@ QUESTION_OBJ_TEMPLATE = {
 
 
 
+class UserSetting:
+	CACHE_FILE_PATH = "cache/user.json"
+	
+	@staticmethod
+	def Load():
+		UserSetting.volume = 50
+		UserSetting.load_file_path = ""
+		UserSetting.save_new_file_path = ""
+		
+		if not os.path.isfile(UserSetting.CACHE_FILE_PATH):
+			return
+		
+		with open(UserSetting.CACHE_FILE_PATH, "r", encoding = "utf8") as f:
+			userData = json.loads(f.read())
+			
+			UserSetting.volume = userData.get("volume", 50)
+			UserSetting.load_file_path = userData.get("load_file_path", "")
+			UserSetting.save_new_file_path = userData.get("save_new_file_path", "")
+	
+	@staticmethod
+	def Save():
+		with open(UserSetting.CACHE_FILE_PATH, "w", encoding = "utf8") as f:
+			f.write(json.dumps({
+				"volume": UserSetting.volume,
+				"load_file_path": UserSetting.load_file_path,
+				"save_new_file_path": UserSetting.save_new_file_path
+			}, indent=4))
+
+
+
 class ModifyRecord:
 	def __init__(self, path, before, after):
 		self.path = path
@@ -184,6 +214,8 @@ class QuestionEditor(QtWidgets.QMainWindow):
 				self.youtube_cache = pickle.load(f)
 		else:
 			self.youtube_cache = dict()
+		# 加載使用者偏好資料
+		UserSetting.Load()
 		# 音檔 cache 紀錄
 		self.youtube_audio_cache = set()
 		for file in os.listdir("cache"):
@@ -263,7 +295,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		# 音樂播放器
 		self.media_player = QMediaPlayer()
 		self.audio_output = QAudioOutput()
-		self.audio_output.setVolume(self.volume_slider.value() / 100)
+		self.audio_output.setVolume(UserSetting.volume / 100)
 		self.media_player.setAudioOutput(self.audio_output)
 
 		self.play_button.clicked.connect(self.playPause)
@@ -276,6 +308,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.position_slider.sliderReleased.connect(self.endDragPosition)
 		self.frame_audio_player.addWidget(self.position_slider)
 		
+		self.volume_slider.setValue(UserSetting.volume)
 		self.volume_slider.valueChanged.connect(self.setVolume)
 
 		self.media_player.positionChanged.connect(self.positionChanged)
@@ -344,6 +377,10 @@ class QuestionEditor(QtWidgets.QMainWindow):
 				
 			with open("cache/data.pickle", "wb") as f:
 				pickle.dump(self.youtube_cache, f)
+				
+			# 儲存使用者偏好資料
+			UserSetting.Save()
+			
 			event.accept()
 		else:
 			event.ignore()
@@ -697,9 +734,10 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			elif result == QtWidgets.QMessageBox.StandardButton.Cancel:
 				return
 				
-		file_path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "載入檔案", "", "JSON Files(*.json)")
+		file_path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "載入檔案", UserSetting.load_file_path, "JSON Files(*.json)")
 		if file_path == "":
 			return
+		UserSetting.load_file_path = os.path.dirname(file_path)
 			
 		with open(file_path, "r", encoding="utf8") as f:
 			question_set = json.loads(f.read())
@@ -736,9 +774,10 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.updateWindowTitle()
 	
 	def saveAs(self):
-		file_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "另存新檔", "", "JSON Files(*.json)")
+		file_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "另存新檔", UserSetting.save_new_file_path, "JSON Files(*.json)")
 		if file_path == "":
 			return
+		UserSetting.save_new_file_path = os.path.dirname(file_path)
 			
 		self.file_path = file_path
 		self.saveReal()
@@ -1047,6 +1086,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.position_label.setText(getTimeText(position))
 
 	def setVolume(self, volume):
+		UserSetting.volume = volume
 		self.audio_output.setVolume(volume / 100)
 
 	def setBeginTime(self):

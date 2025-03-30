@@ -920,16 +920,16 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.updatePage()
 	
 	def editQuestionTitle(self, item):
-		question, qidx = self.getCurrentQuestion()
-		if not question:
-			return
-		
 		# 空字串不接受，顯示回原本內容
 		if len(item.text()) == 0:
 			self.updateQuestionList()
 			return
 		
-		idx = self.question_list_widget.row(item)
+		qidx = self.question_list_widget.row(item)
+		if qidx < 0 or qidx >= len(self.question_set["questions"]):
+			return
+			
+		question = self.question_set["questions"][qidx]
 		self.recordModify(["questions", qidx, "title"], before = question["title"], after = item.text())
 		question["title"] = item.text()
 		

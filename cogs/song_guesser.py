@@ -124,11 +124,13 @@ class GameData:
 		# generate candidate answer set
 		candidate_set = set()
 		for option in question_set["misleadings"]:
-			candidate_set.add(option)
+			candidate_set.add(option.lower())
 		for question in question_set["questions"]:
-			question["candidates"] = set(question["candidates"])
+			question_candidate_set = set()
 			for candidate in question["candidates"]:
-				candidate_set.add(candidate)
+				candidate_set.add(candidate.lower())
+				question_candidate_set.add(candidate.lower())
+			question["candidates"] = question_candidate_set
 		question_set["candidates"] = candidate_set
 		
 		return 0
@@ -398,7 +400,7 @@ class SongGuesser(commands.Cog):
 			tokens = answer.split()
 			over_10_candidates = False
 			for candidate in game.question_set["candidates"]:
-				if any(candidate.find(token) >= 0 for token in tokens):
+				if any(candidate.find(token.lower()) >= 0 for token in tokens):
 					if len(related_list) >= 10:
 						over_10_candidates = True
 						break

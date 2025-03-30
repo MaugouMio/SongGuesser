@@ -284,6 +284,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		
 		# 題目列表
 		self.question_list_widget.itemClicked.connect(self.updateQuestionDetail)
+		self.question_list_widget.itemChanged.connect(self.editQuestionTitle)
 		self.add_question_btn.clicked.connect(self.addQuestion)
 		self.del_question_btn.clicked.connect(self.delQuestion)
 		
@@ -542,7 +543,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 	def getCurrentQuestion(self):
 		question_list = self.question_set["questions"]
 		idx = self.question_list_widget.currentRow()
-		if len(question_list) == 0 or idx >= len(question_list):
+		if idx < 0 or idx >= len(question_list):
 			return None, -1
 		return question_list[idx], idx
 	
@@ -553,7 +554,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			
 		question_parts = question["parts"]
 		idx = self.part_list_widget.currentRow()
-		if len(question_parts) == 0 or idx >= len(question_parts):
+		if idx < 0 or idx >= len(question_parts):
 			return None, -1, -1
 			
 		return question_parts[idx], qidx, idx
@@ -573,6 +574,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		for i in range(len(question_list)):
 			if self.question_list_widget.count() <= i:
 				item = QtWidgets.QListWidgetItem()
+				item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
 				self.question_list_widget.addItem(item)
 			else:
 				item = self.question_list_widget.item(i)
@@ -916,6 +918,20 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			self.question_list_widget.setCurrentRow(len(question_list) - 1)
 		self.part_list_widget.setCurrentRow(0)
 		self.updatePage()
+	
+	def editQuestionTitle(self, item):
+		question, qidx = self.getCurrentQuestion()
+		if not question:
+			return
+		
+		# 空字串不接受，顯示回原本內容
+		if len(item.text()) == 0:
+			self.updateQuestionList()
+			return
+		
+		idx = self.question_list_widget.row(item)
+		self.recordModify(["questions", qidx, "title"], before = question["title"], after = item.text())
+		question["title"] = item.text()
 		
 	# ====================================================================================================
 	

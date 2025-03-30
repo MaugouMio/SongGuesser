@@ -184,9 +184,6 @@ class MisleadingAnsWindow(QtWidgets.QWidget):
 		
 		if self.onDeleteAnswer:
 			answers = self.onDeleteAnswer(selected_idx)
-			if not answers:
-				return
-				
 			self.misleading_ans_list.clearSelection()
 			self.updateMisleadingAnswerList(answers)
 			
@@ -198,8 +195,6 @@ class MisleadingAnsWindow(QtWidgets.QWidget):
 		if self.onEditAnswer:
 			idx = self.misleading_ans_list.row(item)
 			answers = self.onEditAnswer(idx, item.text())
-			if answers:
-				self.updateMisleadingAnswerList(answers)
 
 class QuestionEditor(QtWidgets.QMainWindow):
 	def __init__(self):

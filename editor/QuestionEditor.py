@@ -742,7 +742,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		with open(file_path, "r", encoding="utf8") as f:
 			question_set = json.loads(f.read())
 			result = validateQuestionFormat(question_set)
-			if result != FormatErrorCode.OK and result != FormatErrorCode.EMPTY_QUESTIONS:  # 只接受題目長度為 0 的錯誤類型
+			if result not in {FormatErrorCode.OK, FormatErrorCode.EMPTY_QUESTIONS, FormatErrorCode.QUESTION_PART_INVALID_DURATION}:
 				self.message_box.critical(self, WINDOW_TITLE, f"題庫檔案格式有誤，錯誤代碼：{result}")
 				return
 		
@@ -761,8 +761,10 @@ class QuestionEditor(QtWidgets.QMainWindow):
 	def saveReal(self):
 		result = validateQuestionFormat(self.question_set)
 		if result != FormatErrorCode.OK:
-			if result == FormatErrorCode.EMPTY_QUESTIONS:  # 正常應該只會有這個 case
+			if result == FormatErrorCode.EMPTY_QUESTIONS:
 				self.message_box.warning(self, WINDOW_TITLE, "題庫中沒有任何題目，將無法使用這份題庫進行遊戲")
+			elif result == FormatErrorCode.QUESTION_PART_INVALID_DURATION:
+				self.message_box.warning(self, WINDOW_TITLE, "部分音樂片段的長度為0，將無法使用這份題庫進行遊戲")
 			else:
 				self.message_box.critical(self, WINDOW_TITLE, f"題庫檔案格式有誤，錯誤代碼：{result}")
 				return

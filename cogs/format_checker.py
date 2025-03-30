@@ -28,6 +28,7 @@ class FormatErrorCode:
 	QUESTION_PART_WRONG_TYPE		= 33000
 	QUESTION_PART_WRONG_LEN			= 33001
 	QUESTION_PART_WRONG_TIME_TYPE	= 33002
+	QUESTION_PART_INVALID_DURATION	= 33003
 	
 	QUESTION_NO_CANDIDATES			= 3400
 	QUESTION_CANDIDATES_WRONG_TYPE	= 3401
@@ -111,9 +112,10 @@ def validateQuestionFormat(question_set):
 				return FormatErrorCode.QUESTION_PART_WRONG_TYPE
 			if len(part) != 2:
 				return FormatErrorCode.QUESTION_PART_WRONG_LEN
-			for i in range(2):
-				if type(part[i]) is not int:
-					return FormatErrorCode.QUESTION_PART_WRONG_TIME_TYPE
+			if type(part[0]) is not int or type(part[1]) is not int:
+				return FormatErrorCode.QUESTION_PART_WRONG_TIME_TYPE
+			if part[1] <= part[0]:
+				return FormatErrorCode.QUESTION_PART_INVALID_DURATION
 					
 		if "candidates" not in question:
 			return FormatErrorCode.QUESTION_NO_CANDIDATES

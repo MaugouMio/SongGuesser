@@ -192,9 +192,11 @@ class MisleadingAnsWindow(QtWidgets.QWidget):
 		if len(item.text()) == 0:
 			return
 			
+		newText = item.text()[:MAX_STR_LEN]
 		if self.onEditAnswer:
 			idx = self.misleading_ans_list.row(item)
-			answers = self.onEditAnswer(idx, item.text())
+			self.onEditAnswer(idx, newText)
+		item.setText(newText)
 
 class QuestionEditor(QtWidgets.QMainWindow):
 	def __init__(self):
@@ -791,12 +793,24 @@ class QuestionEditor(QtWidgets.QMainWindow):
 	# ====================================================================================================
 	
 	def editTitle(self):
-		self.recordModify(["title"], before = self.question_set["title"], after = self.question_set_title.text())
-		self.question_set["title"] = self.question_set_title.text()
+		newText = self.question_set_title.text()[:MAX_STR_LEN]
+		if len(newText) == 0:
+			self.updateTitleAuthor()
+			return
+			
+		self.recordModify(["title"], before = self.question_set["title"], after = newText)
+		self.question_set["title"] = newText
+		self.updateTitleAuthor()
 		
 	def editAuthor(self):
-		self.recordModify(["author"], before = self.question_set["author"], after = self.question_set_author.text())
-		self.question_set["author"] = self.question_set_author.text()
+		newText = self.question_set_author.text()[:MAX_STR_LEN]
+		if len(newText) == 0:
+			self.updateTitleAuthor()
+			return
+			
+		self.recordModify(["author"], before = self.question_set["author"], after = newText)
+		self.question_set["author"] = newText
+		self.updateTitleAuthor()
 		
 	# ====================================================================================================
 	
@@ -846,10 +860,10 @@ class QuestionEditor(QtWidgets.QMainWindow):
 					continue
 				
 				question = copy.deepcopy(QUESTION_OBJ_TEMPLATE)
-				question["title"] = info["title"]
+				question["title"] = info["title"][:MAX_STR_LEN]
 				question["vid"] = vid
 				question["parts"].append([0, 3000])	 # 預設片段是前 3 秒
-				question["candidates"].append(info["title"])
+				question["candidates"].append(info["title"][:MAX_STR_LEN])
 				
 				real_add_list.append(question)
 			
@@ -880,10 +894,10 @@ class QuestionEditor(QtWidgets.QMainWindow):
 				return
 			
 			question = copy.deepcopy(QUESTION_OBJ_TEMPLATE)
-			question["title"] = info["title"]
+			question["title"] = info["title"][:MAX_STR_LEN]
 			question["vid"] = vid
 			question["parts"].append([0, 3000])	 # 預設片段是前 3 秒
-			question["candidates"].append(info["title"])
+			question["candidates"].append(info["title"][:MAX_STR_LEN])
 			
 			self.question_set["questions"].append(question)
 			self.question_vid_set.add(vid)
@@ -924,9 +938,12 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		if qidx < 0 or qidx >= len(self.question_set["questions"]):
 			return
 			
+		newText = item.text()[:MAX_STR_LEN]
 		question = self.question_set["questions"][qidx]
-		self.recordModify(["questions", qidx, "title"], before = question["title"], after = item.text())
-		question["title"] = item.text()
+		self.recordModify(["questions", qidx, "title"], before = question["title"], after = newText)
+		question["title"] = newText
+		
+		self.updateQuestionList()
 		
 	# ====================================================================================================
 	
@@ -974,9 +991,12 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			self.updateQuestionAnswerList()
 			return
 		
+		newText = item.text()[:MAX_STR_LEN]
 		idx = self.valid_answer_list.row(item)
-		self.recordModify(["questions", qidx, "candidates", idx], before = question["candidates"][idx], after = item.text())
-		question["candidates"][idx] = item.text()
+		self.recordModify(["questions", qidx, "candidates", idx], before = question["candidates"][idx], after = newText)
+		question["candidates"][idx] = newText
+		
+		self.updateQuestionAnswerList()
 		
 	# ====================================================================================================
 	

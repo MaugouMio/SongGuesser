@@ -1,11 +1,15 @@
+MAX_STR_LEN = 100
+
 class FormatErrorCode:
 	OK								= 0
 	
 	NO_TITLE						= 100
 	TITLE_WRONG_TYPE				= 101
+	TITLE_TOO_LONG					= 102
 	
 	NO_AUTHOR						= 200
 	AUTHOR_WRONG_TYPE				= 201
+	AUTHOR_TOO_LONG					= 202
 	
 	NO_QUESTIONS					= 300
 	QUESTIONS_WRONG_TYPE			= 301
@@ -15,11 +19,12 @@ class FormatErrorCode:
 	
 	QUESTION_NO_VID					= 3100
 	QUESTION_VID_WRONG_TYPE			= 3101
-	QUESTION_EMPTY_VID				= 3102
+	QUESTION_WRONG_VID_FORMAT		= 3102
 	
 	QUESTION_NO_TITLE				= 3200
 	QUESTION_TITLE_WRONG_TYPE		= 3201
 	QUESTION_EMPTY_TITLE			= 3202
+	QUESTION_TITLE_TOO_LONG			= 3203
 	
 	QUESTION_NO_PARTS				= 3300
 	QUESTION_PARTS_WRONG_TYPE		= 3301
@@ -36,12 +41,14 @@ class FormatErrorCode:
 	
 	QUESTION_CANDIDATE_WRONG_TYPE	= 34000
 	QUESTION_EMPTY_CANDIDATE		= 34001
+	QUESTION_CANDIDATE_TOO_LONG		= 34002
 	
 	NO_MISLEADINGS					= 400
 	MISLEADINGS_WRONG_TYPE			= 401
 	
 	MISLEADING_WRONG_TYPE			= 4000
 	EMPTY_MISLEADING				= 4001
+	MISLEADING_TOO_LONG				= 4002
 
 
 
@@ -70,11 +77,15 @@ def validateQuestionFormat(question_set):
 		return FormatErrorCode.NO_TITLE
 	if type(question_set["title"]) is not str:
 		return FormatErrorCode.TITLE_WRONG_TYPE
+	if len(question_set["title"]) > MAX_STR_LEN:
+		return FormatErrorCode.TITLE_TOO_LONG
 		
 	if "author" not in question_set:
 		return FormatErrorCode.NO_AUTHOR
 	if type(question_set["author"]) is not str:
 		return FormatErrorCode.AUTHOR_WRONG_TYPE
+	if len(question_set["author"]) > MAX_STR_LEN:
+		return FormatErrorCode.AUTHOR_TOO_LONG
 		
 	if "questions" not in question_set:
 		return FormatErrorCode.NO_QUESTIONS
@@ -91,8 +102,8 @@ def validateQuestionFormat(question_set):
 			return FormatErrorCode.QUESTION_NO_VID
 		if type(question["vid"]) is not str:
 			return FormatErrorCode.QUESTION_VID_WRONG_TYPE
-		if len(question["vid"]) == 0:
-			return FormatErrorCode.QUESTION_EMPTY_VID
+		if len(question["vid"]) != 11 or not question["vid"].replace('_', '').replace('-', '').isalnum():
+			return FormatErrorCode.QUESTION_WRONG_VID_FORMAT
 				
 		if "title" not in question:
 			return FormatErrorCode.QUESTION_NO_TITLE
@@ -100,6 +111,8 @@ def validateQuestionFormat(question_set):
 			return FormatErrorCode.QUESTION_TITLE_WRONG_TYPE
 		if len(question["title"]) == 0:
 			return FormatErrorCode.QUESTION_EMPTY_TITLE
+		if len(question["title"]) > MAX_STR_LEN:
+			return FormatErrorCode.QUESTION_TITLE_TOO_LONG
 			
 		if "parts" not in question:
 			return FormatErrorCode.QUESTION_NO_PARTS
@@ -128,6 +141,8 @@ def validateQuestionFormat(question_set):
 				return FormatErrorCode.QUESTION_CANDIDATE_WRONG_TYPE
 			if len(candidate) == 0:
 				return FormatErrorCode.QUESTION_EMPTY_CANDIDATE
+			if len(candidate) > MAX_STR_LEN:
+				return FormatErrorCode.QUESTION_CANDIDATE_TOO_LONG
 			
 	if "misleadings" not in question_set:
 		return FormatErrorCode.NO_MISLEADINGS
@@ -138,5 +153,7 @@ def validateQuestionFormat(question_set):
 			return FormatErrorCode.MISLEADING_WRONG_TYPE
 		if len(option) == 0:
 			return FormatErrorCode.EMPTY_MISLEADING
+		if len(option) > MAX_STR_LEN:
+			return FormatErrorCode.MISLEADING_TOO_LONG
 	
 	return FormatErrorCode.OK

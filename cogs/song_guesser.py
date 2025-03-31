@@ -256,7 +256,8 @@ class SongGuesser(commands.Cog):
 		game.step = GameStep.WAITING
 		
 		title = game.question_set["title"]
-		await interaction.response.send_message(f"{interaction.user.name} 開始了 __**{title}**__ 的猜歌遊戲\n加入 <#{game.channel.id}> 頻道一起遊玩吧！")
+		author = game.question_set["author"]
+		await interaction.response.send_message(f"{interaction.user.name} 開始了 __**{title} (by {author})**__ 的猜歌遊戲\n加入 <#{game.channel.id}> 頻道一起遊玩吧！")
 		
 		#倒數後直接開始第一題
 		message = await game.text_channel.send("遊戲將於 5 秒後開始...")

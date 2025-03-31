@@ -400,7 +400,7 @@ class SongGuesser(commands.Cog):
 			tokens = answer.split()
 			over_10_candidates = False
 			for candidate in game.question_set["candidates"]:
-				if any(candidate.find(token.lower()) >= 0 for token in tokens):
+				if all(candidate.find(token.lower()) >= 0 for token in tokens):
 					if len(related_list) >= 10:
 						over_10_candidates = True
 						break

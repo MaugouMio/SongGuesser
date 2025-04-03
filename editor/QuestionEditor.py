@@ -1068,7 +1068,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		# 微調時間軸時中斷試聽
 		self.auto_pause_time = -1
 		
-		target_time = max(self.position_slider.value() - 100, 0)
+		target_time = max(self.position_slider.value() - 50, 0)
 		self.media_player.setPosition(target_time)
 		self.media_player.pause()
 	
@@ -1078,7 +1078,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		# 微調時間軸時中斷試聽
 		self.auto_pause_time = -1
 		
-		target_time = min(self.position_slider.value() + 100, self.position_slider.maximum())
+		target_time = min(self.position_slider.value() + 50, self.position_slider.maximum())
 		self.media_player.setPosition(target_time)
 		self.media_player.pause()
 	

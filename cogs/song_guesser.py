@@ -4,7 +4,7 @@ import asyncio, functools
 import json, os, random
 
 import discord
-from youtube_dl import youtube_dl
+from yt_dlp import YoutubeDL
 from pydub import AudioSegment
 
 from discord.ext import commands
@@ -12,11 +12,8 @@ from discord import app_commands
 
 from cogs.format_checker import *
 
-# Suppress noise about console usage from errors
-youtube_dl.utils.bug_reports_message = lambda: ''
-
-ytdl_format_options = {
-	'format': 'bestaudio/best',
+ytdlp_format_options = {
+	'format': 'bestaudio',
 	# 'outtmpl': 'temp/main',  # set individually for each discord guild
 	'restrictfilenames': True,
 	'noplaylist': True,
@@ -33,7 +30,7 @@ ffmpeg_options = {
 	'options': '-vn',
 }
 
-ytdl_instances = dict()
+ytdlp_options = dict()
 class YTDLSource(discord.PCMVolumeTransformer):
 	def __init__(self, source, *, volume=0.5):
 		super().__init__(source, volume)
@@ -41,27 +38,23 @@ class YTDLSource(discord.PCMVolumeTransformer):
 	@classmethod
 	async def load_from_url(cls, url, parts, guild_id, *, loop=None):
 		directory = f"temp/{guild_id}"
-		if guild_id not in ytdl_instances:
+		if guild_id not in ytdlp_options:
 			if not os.path.exists(directory):
 				os.mkdir(directory)
 				
-			options = ytdl_format_options.copy()
+			options = ytdlp_format_options.copy()
 			options["outtmpl"] = f"{directory}/main.%(ext)s"
-			ytdl_instances[guild_id] = youtube_dl.YoutubeDL(options)
+			ytdlp_options[guild_id] = options
 		
 		# remove old files
 		for file in os.listdir(directory):
 			os.remove(os.path.join(directory, file))
 		
-		ytdl = ytdl_instances[guild_id]
-		loop = loop or asyncio.get_event_loop()
-		data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=True))
+		with YoutubeDL(ytdlp_options[guild_id]) as ytdl:
+			loop = loop or asyncio.get_event_loop()
+			data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=True))
+			filename = ytdl.prepare_filename(data)
 		
-		if 'entries' in data:
-			# take first item from a playlist
-			data = data['entries'][0]
-		
-		filename = ytdl.prepare_filename(data)
 		song = AudioSegment.from_file(filename, filename[(filename.find('.') + 1):])
 		for i in range(len(parts)):
 			part = parts[i]

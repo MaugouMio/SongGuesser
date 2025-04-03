@@ -6,7 +6,7 @@ import urllib
 from urllib.parse import urlparse
 from urllib.parse import parse_qs
 
-from youtube_dl import youtube_dl
+from yt_dlp import YoutubeDL
 from pytube import Playlist
 
 from PyQt6 import uic
@@ -510,8 +510,8 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			return
 			
 		url = f"https://www.youtube.com/watch?v={vid}"
-		ytdl_format_options = {
-			'format': 'bestaudio/best',
+		ytdlp_format_options = {
+			'format': 'bestaudio',
 			'outtmpl': f'cache/{vid}',
 			'restrictfilenames': True,
 			'noplaylist': True,
@@ -523,8 +523,8 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			'default_search': 'auto',
 			'source_address': '0.0.0.0',  # bind to ipv4 since ipv6 addresses cause issues sometimes
 		}
-		ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
-		ytdl.download([url])
+		with YoutubeDL(ytdlp_format_options) as ytdl:
+			ytdl.download(url)
 		self.youtube_audio_cache.add(vid)
 
 	def getYoutubeVideoID(self, url):

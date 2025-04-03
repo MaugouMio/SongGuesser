@@ -24,9 +24,7 @@ async def auto_leave_voice_channel():
 	await song_guesser.check_auto_stop()
 
 async def load():
-	for filename in os.listdir('./cogs'):
-		if filename.endswith('.py'):
-			await bot.load_extension(f'cogs.{filename[:-3]}')
+	await bot.load_extension(f'cogs.song_guesser')
 
 async def main():
 	await load()

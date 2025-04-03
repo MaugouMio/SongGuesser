@@ -115,13 +115,13 @@ class GameData:
 			return result
 		
 		# generate candidate answer set
-		candidate_set = set()
+		candidate_set = dict()
 		for option in question_set["misleadings"]:
-			candidate_set.add(option.lower())
+			candidate_set[option.lower()] = option
 		for question in question_set["questions"]:
 			question_candidate_set = set()
 			for candidate in question["candidates"]:
-				candidate_set.add(candidate.lower())
+				candidate_set[candidate.lower()] = candidate
 				question_candidate_set.add(candidate.lower())
 			question["candidates"] = question_candidate_set
 		question_set["candidates"] = candidate_set
@@ -388,17 +388,18 @@ class SongGuesser(commands.Cog):
 			
 		game.guessed_players.add(interaction.user)
 		
-		if answer not in game.question_set["candidates"]:
+		lowered_answer = answer.lower()
+		if lowered_answer not in game.question_set["candidates"]:
 			# 讓他看相關的選項
 			related_list = []
-			tokens = answer.split()
+			tokens = lowered_answer.split()
 			over_10_candidates = False
 			for candidate in game.question_set["candidates"]:
-				if all(candidate.find(token.lower()) >= 0 for token in tokens):
+				if all(candidate.find(token) >= 0 for token in tokens):
 					if len(related_list) >= 10:
 						over_10_candidates = True
 						break
-					related_list.append(candidate)
+					related_list.append(game.question_set["candidates"][candidate])
 			
 			if len(related_list) == 0:
 				await interaction.response.send_message("沒有任何符合或相似的選項，建議使用更廣泛的關鍵字", ephemeral=True)
@@ -412,7 +413,7 @@ class SongGuesser(commands.Cog):
 			return
 			
 		idx = game.current_question_idx
-		if answer in game.question_set["questions"][idx]["candidates"]:
+		if lowered_answer in game.question_set["questions"][idx]["candidates"]:
 			vid = game.question_set["questions"][idx]["vid"]
 			await interaction.response.send_message(f"⭕ {interaction.user.name} 猜：{answer}\n成功獲得一分！\n使用 `/下一題` 指令繼續遊戲\nhttps://www.youtube.com/watch?v={vid}")
 			game.answer_guessed = True

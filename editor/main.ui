@@ -832,6 +832,32 @@
        </property>
       </widget>
      </widget>
+     <widget class="QPushButton" name="goto_part_left_btn">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>396</y>
+        <width>41</width>
+        <height>23</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>跳至</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="goto_part_right_btn">
+      <property name="geometry">
+       <rect>
+        <x>430</x>
+        <y>395</y>
+        <width>41</width>
+        <height>23</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>跳至</string>
+      </property>
+     </widget>
      <zorder>frame_5</zorder>
      <zorder>frame_2</zorder>
      <zorder>verticalLayoutWidget</zorder>
@@ -844,6 +870,8 @@
      <zorder>test_part_button</zorder>
      <zorder>volume_slider</zorder>
      <zorder>label_4</zorder>
+     <zorder>goto_part_left_btn</zorder>
+     <zorder>goto_part_right_btn</zorder>
     </widget>
     <zorder>question_detail_page</zorder>
     <zorder>quest_list_page</zorder>

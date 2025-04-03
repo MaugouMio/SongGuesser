@@ -300,6 +300,8 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.test_part_button.clicked.connect(self.playPart)
 		self.slight_left_button.clicked.connect(self.seekSlightlyLeft)
 		self.slight_right_button.clicked.connect(self.seekSlightlyRight)
+		self.goto_part_left_btn.clicked.connect(self.gotoPartLeft)
+		self.goto_part_right_btn.clicked.connect(self.gotoPartRight)
 
 		self.position_slider = Slider(Qt.Orientation.Horizontal)
 		self.position_slider.setRange(0, 0)
@@ -1078,6 +1080,32 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		
 		target_time = min(self.position_slider.value() + 100, self.position_slider.maximum())
 		self.media_player.setPosition(target_time)
+		self.media_player.pause()
+	
+	def gotoPartLeft(self):
+		question_part, qidx, idx = self.getCurrentQuestionPart()
+		if not question_part:
+			return
+			
+		# 先下載並載入音檔
+		self.checkDownloadBeforePlay()
+		# 跳到指定點時中斷試聽
+		self.auto_pause_time = -1
+		
+		self.media_player.setPosition(question_part[0])
+		self.media_player.pause()
+	
+	def gotoPartRight(self):
+		question_part, qidx, idx = self.getCurrentQuestionPart()
+		if not question_part:
+			return
+			
+		# 先下載並載入音檔
+		self.checkDownloadBeforePlay()
+		# 跳到指定點時中斷試聽
+		self.auto_pause_time = -1
+		
+		self.media_player.setPosition(question_part[1])
 		self.media_player.pause()
 	
 	def playbackStateChanged(self, newState):

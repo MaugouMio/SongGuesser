@@ -369,6 +369,35 @@ class SongGuesser(commands.Cog):
 			
 		await interaction.response.send_message("已成功執行指令，請稍候")
 		await self.play_part(game)
+		
+	# 猜測一個檢查過確實存在的選項使用
+	async def guessAccurate(self, interaction, answer):
+		game = await self.game_command_pre_check(interaction)
+		if not game:
+			return
+		
+		if game.answer_guessed:
+			await interaction.response.send_message("已經有人猜出這題答案了，下一題再加油吧！", ephemeral=True)
+			return
+		
+		if game.one_guess_per_part and interaction.user in game.guessed_players:
+			await interaction.response.send_message("你在這個片段已經猜過了，請等下個片段播放後再試", ephemeral=True)
+			return
+		
+		game.guessed_players.add(interaction.user)
+		
+		idx = game.current_question_idx
+		if answer.lower() in game.question_set["questions"][idx]["candidates"]:
+			vid = game.question_set["questions"][idx]["vid"]
+			await interaction.response.send_message(f"⭕ {interaction.user.name} 猜：{answer}\n成功獲得一分！\n使用 `/下一題` 指令繼續遊戲\nhttps://www.youtube.com/watch?v={vid}")
+			game.answer_guessed = True
+			
+			if interaction.user not in game.player_scores:
+				game.player_scores[interaction.user] = 1
+			else:
+				game.player_scores[interaction.user] += 1
+		else:
+			await interaction.response.send_message(f"❌ {interaction.user.name} 猜：{answer}")
 	
 	@app_commands.command(name = "猜")
 	async def guess(self, interaction, answer: str):
@@ -385,8 +414,6 @@ class SongGuesser(commands.Cog):
 		if game.one_guess_per_part and interaction.user in game.guessed_players:
 			await interaction.response.send_message("你在這個片段已經猜過了，請等下個片段播放後再試", ephemeral=True)
 			return
-			
-		game.guessed_players.add(interaction.user)
 		
 		lowered_answer = answer.lower()
 		if lowered_answer not in game.question_set["candidates"]:
@@ -404,26 +431,18 @@ class SongGuesser(commands.Cog):
 			if len(related_list) == 0:
 				await interaction.response.send_message("沒有任何符合或相似的選項，建議使用更廣泛的關鍵字", ephemeral=True)
 			else:
+				view = discord.ui.View(timeout = 30)
 				hint_text = "沒有符合的選項，以下是相關的選項列表"
 				for option in related_list:
-					hint_text += f"\n- {option}"
+					button = discord.ui.Button(label = option)
+					button.callback = functools.partial(self.guessAccurate, answer=option)
+					view.add_item(button)
 				if over_10_candidates:
 					hint_text += "\n還有更多關聯選項，建議使用更精確的關鍵字"
-				await interaction.response.send_message(hint_text, ephemeral=True)
+				await interaction.response.send_message(hint_text, view = view, ephemeral=True)
 			return
 			
-		idx = game.current_question_idx
-		if lowered_answer in game.question_set["questions"][idx]["candidates"]:
-			vid = game.question_set["questions"][idx]["vid"]
-			await interaction.response.send_message(f"⭕ {interaction.user.name} 猜：{answer}\n成功獲得一分！\n使用 `/下一題` 指令繼續遊戲\nhttps://www.youtube.com/watch?v={vid}")
-			game.answer_guessed = True
-			
-			if interaction.user not in game.player_scores:
-				game.player_scores[interaction.user] = 1
-			else:
-				game.player_scores[interaction.user] += 1
-		else:
-			await interaction.response.send_message(f"❌ {interaction.user.name} 猜：{answer}")
+		await self.guessAccurate(interaction, answer)
 	
 	@app_commands.command(name = "結算")
 	async def settle(self, interaction):

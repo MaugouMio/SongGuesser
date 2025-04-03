@@ -270,7 +270,7 @@
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout_3">
        <item>
-        <widget class="QPushButton" name="move_left_button">
+        <widget class="QPushButton" name="slight_left_button">
          <property name="maximumSize">
           <size>
            <width>30</width>
@@ -308,7 +308,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="move_right_button">
+        <widget class="QPushButton" name="slight_right_button">
          <property name="maximumSize">
           <size>
            <width>30</width>

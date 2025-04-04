@@ -284,6 +284,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.question_list_widget.itemChanged.connect(self.editQuestionTitle)
 		self.add_question_btn.clicked.connect(self.addQuestion)
 		self.del_question_btn.clicked.connect(self.delQuestion)
+		self.sort_question_btn.clicked.connect(self.sortQuestion)
 		
 		# 答案列表
 		self.add_ans_btn.clicked.connect(self.addValidAnswer)
@@ -417,6 +418,9 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		record = self.modify_record[self.modify_record_idx]
 		self.modify_record_idx -= 1
 		
+		if len(record.path) == 1 and record.path[0] == "questions":  # 排序題目列表
+			self.auto_select_qustion_idx = self.getNewSelectQuestionIdx(record.after, record.before)
+			
 		target = self.question_set
 		for i in range(len(record.path) - 1):
 			if record.path[i] == "questions":
@@ -451,6 +455,9 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		
 		record = self.modify_record[self.modify_record_idx + 1]
 		self.modify_record_idx += 1
+		
+		if len(record.path) == 1 and record.path[0] == "questions":  # 排序題目列表
+			self.auto_select_qustion_idx = self.getNewSelectQuestionIdx(record.before, record.after)
 		
 		target = self.question_set
 		for i in range(len(record.path) - 1):
@@ -930,6 +937,29 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		if idx >= len(question_list):
 			self.question_list_widget.setCurrentRow(len(question_list) - 1)
 		self.part_list_widget.setCurrentRow(0)
+		self.updatePage()
+	
+	def getNewSelectQuestionIdx(self, before_list, after_list):
+		# 找到原本選的那個的新 index 選過去
+		ori_select_vid = before_list[self.question_list_widget.currentRow()]["vid"]
+		for i in range(len(after_list)):
+			if after_list[i]["vid"] == ori_select_vid:
+				return i
+		return 0
+	
+	def sortQuestion(self):
+		question_list = self.question_set["questions"]
+		if len(question_list) <= 1:
+			return
+		
+		sorted_list = sorted(question_list, key = lambda q: q["title"])
+		if all([question_list[i]["vid"] == sorted_list[i]["vid"] for i in range(len(question_list))]):
+			return
+		
+		self.question_list_widget.setCurrentRow(self.getNewSelectQuestionIdx(question_list, sorted_list))
+		
+		self.recordModify(["questions"], before=question_list, after=sorted_list)
+		self.question_set["questions"] = sorted_list
 		self.updatePage()
 	
 	def editQuestionTitle(self, item):

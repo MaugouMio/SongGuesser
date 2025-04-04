@@ -161,19 +161,6 @@
        <set>Qt::AlignCenter</set>
       </property>
      </widget>
-     <widget class="QPushButton" name="add_question_btn">
-      <property name="geometry">
-       <rect>
-        <x>40</x>
-        <y>480</y>
-        <width>75</width>
-        <height>23</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>新增題目</string>
-      </property>
-     </widget>
      <widget class="QListWidget" name="question_list_widget">
       <property name="geometry">
        <rect>
@@ -187,18 +174,44 @@
        <number>-1</number>
       </property>
      </widget>
-     <widget class="QPushButton" name="del_question_btn">
+     <widget class="QWidget" name="horizontalLayoutWidget">
       <property name="geometry">
        <rect>
-        <x>146</x>
-        <y>480</y>
-        <width>75</width>
-        <height>23</height>
+        <x>0</x>
+        <y>475</y>
+        <width>261</width>
+        <height>30</height>
        </rect>
       </property>
-      <property name="text">
-       <string>刪除題目</string>
-      </property>
+      <layout class="QHBoxLayout" name="horizontalLayout">
+       <property name="leftMargin">
+        <number>5</number>
+       </property>
+       <property name="rightMargin">
+        <number>5</number>
+       </property>
+       <item>
+        <widget class="QPushButton" name="add_question_btn">
+         <property name="text">
+          <string>新增題目</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="del_question_btn">
+         <property name="text">
+          <string>刪除題目</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="sort_question_btn">
+         <property name="text">
+          <string>自動排序</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </widget>
     </widget>
     <widget class="QFrame" name="question_detail_page">

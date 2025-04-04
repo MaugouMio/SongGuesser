@@ -98,7 +98,7 @@ class Slider(QtWidgets.QSlider):
 
 # 參考 misleading_edit.ui 生成的程式碼調整
 class MisleadingAnsWindow(QtWidgets.QWidget):
-	def __init__(self, addCallback, delCallback, editCallback, undo, redo):
+	def __init__(self, addCallback, delCallback, sortCallback, editCallback, undo, redo):
 		super().__init__()
 		
 		self.resize(480, 300)
@@ -130,8 +130,14 @@ class MisleadingAnsWindow(QtWidgets.QWidget):
 		self.add_mis_ans_btn.clicked.connect(self.addMisleadingAnswer)
 		self.add_mis_ans_btn.setText(QCoreApplication.translate("MisleadingAnsWindow", u"\u65b0\u589e", None))
 		
+		self.sort_ans_btn = QtWidgets.QPushButton(self)
+		self.sort_ans_btn.setGeometry(QRect(390, 10, 75, 23))
+		self.sort_ans_btn.clicked.connect(self.sortMisleadingAnswer)
+		self.sort_ans_btn.setText(QCoreApplication.translate("MisleadingAnsWindow", u"\u81ea\u52d5\u6392\u5e8f", None))
+		
 		self.onAddAnswer = addCallback
 		self.onDeleteAnswer = delCallback
+		self.onSortAnswer = sortCallback
 		self.onEditAnswer = editCallback
 		self.undo = undo
 		self.redo = redo
@@ -186,6 +192,12 @@ class MisleadingAnsWindow(QtWidgets.QWidget):
 			answers = self.onDeleteAnswer(selected_idx)
 			self.misleading_ans_list.clearSelection()
 			self.updateMisleadingAnswerList(answers)
+	
+	def sortMisleadingAnswer(self):
+		if self.onSortAnswer:
+			answers = self.onSortAnswer()
+			if answers != None:
+				self.updateMisleadingAnswerList(answers)
 			
 	def editMisleadingAnswer(self, item):
 		# 空字串不接受，顯示回原本內容
@@ -276,7 +288,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.question_set_author.editingFinished.connect(self.editAuthor)
 		
 		# 誤導用答案編輯視窗
-		self.misleading_ans_window = MisleadingAnsWindow(self.addMisleadingAnswer, self.delMisleadingAnswer, self.editMisleadingAnswer, self.undo, self.redo)
+		self.misleading_ans_window = MisleadingAnsWindow(self.addMisleadingAnswer, self.delMisleadingAnswer, self.sortMisleadingAnswer, self.editMisleadingAnswer, self.undo, self.redo)
 		self.edit_misleading_btn.clicked.connect(self.misleading_ans_window.show)
 		
 		# 題目列表
@@ -1045,6 +1057,20 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			if selected_idx[i] < len(self.question_set["misleadings"]):
 				self.recordModify(["misleadings", selected_idx[i]], before = self.question_set["misleadings"][selected_idx[i]])
 				del self.question_set["misleadings"][selected_idx[i]]
+		
+		return self.question_set["misleadings"]
+	
+	def sortMisleadingAnswer(self):
+		ori_list = self.question_set["misleadings"]
+		if len(ori_list) <= 1:
+			return None
+			
+		sorted_list = sorted(ori_list)
+		if all([ori_list[i] == sorted_list[i] for i in range(len(sorted_list))]):
+			return None
+		
+		self.recordModify(["misleadings"], before=ori_list, after=sorted_list)
+		self.question_set["misleadings"] = sorted_list
 		
 		return self.question_set["misleadings"]
 	

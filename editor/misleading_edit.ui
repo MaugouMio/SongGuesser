@@ -86,6 +86,19 @@
     <string>新增</string>
    </property>
   </widget>
+  <widget class="QPushButton" name="sort_ans_btn">
+   <property name="geometry">
+    <rect>
+     <x>390</x>
+     <y>10</y>
+     <width>75</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>自動排序</string>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections/>

@@ -1,7 +1,7 @@
 # This example requires the 'message_content' privileged intent to function.
 
 import asyncio, functools
-import json, os, random
+import json, os, random, struct
 
 import discord
 from yt_dlp import YoutubeDL
@@ -130,6 +130,10 @@ class GameData:
 	
 class SongGuesser(commands.Cog):
 	def __init__(self, bot):
+		directory = "temp"
+		if not os.path.exists(directory):
+			os.mkdir(directory)
+			
 		self.bot = bot
 		self.games = dict()	 # <Guild, GameData>
 	
@@ -149,9 +153,19 @@ class SongGuesser(commands.Cog):
 			game.voice_client.stop()
 			
 		source = await YTDLSource.get_part(game.current_question_part, game.guild_id)
+			
 		message = await game.text_channel.send(f"正在播放第 {game.current_question_idx + 1} 題片段 {game.current_question_part + 1}，使用 `/猜` 指令進行搶答")
 		await asyncio.sleep(2)
-		game.voice_client.play(source, after=lambda e, game=game, message=message: asyncio.run_coroutine_threadsafe(self.on_play_finished(e, game, message), self.bot.loop))
+		for i in range(2):
+			try:
+				game.voice_client.play(source, after=lambda e, game=game, message=message: asyncio.run_coroutine_threadsafe(self.on_play_finished(e, game, message), self.bot.loop))
+				break
+			except Exception as e:
+				if not discord.opus.is_loaded():
+					_bitness = struct.calcsize('P') * 8
+					_target = 'x64' if _bitness > 32 else 'x86'
+					_filename = f"bin/libopus-0.{_target}.dll"
+					discord.opus.load_opus(_filename)
 	
 	async def init_question(self, game):
 		if game.step != GameStep.PLAYING:

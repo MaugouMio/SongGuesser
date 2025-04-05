@@ -2,6 +2,7 @@ import discord
 import asyncio
 from discord.ext import commands, tasks
 from discord import app_commands
+from cogs import song_guesser
 import os
 
 intents = discord.Intents.default()
@@ -24,7 +25,7 @@ async def auto_leave_voice_channel():
 	await song_guesser.check_auto_stop()
 
 async def load():
-	await bot.load_extension(f'cogs.song_guesser')
+	await bot.load_extension('cogs.song_guesser')
 
 async def main():
 	await load()

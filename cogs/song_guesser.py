@@ -225,6 +225,7 @@ class SongGuesser(commands.Cog):
 	# =========================================================================================
 
 	@app_commands.command(name = "開始遊戲")
+	@app_commands.checks.has_permissions(moderate_members=True)
 	async def start(self, interaction, attachment: discord.Attachment):
 		"""上傳題庫，開始一場猜歌遊戲"""
 		
@@ -303,6 +304,7 @@ class SongGuesser(commands.Cog):
 		# await interaction.response.send_message(f'Now playing: {player.title}', ephemeral=True)
 		
 	@app_commands.command(name = "結束遊戲")
+	@app_commands.checks.has_permissions(moderate_members=True)
 	async def stop(self, interaction):
 		"""把機器人驅逐出去"""
 		
@@ -512,6 +514,9 @@ class SongGuesser(commands.Cog):
 		
 	@commands.command()
 	async def sync(self, ctx) -> None:
+		if not ctx.message.author.guild_permissions.moderate_members:
+			return
+			
 		fmt = await ctx.bot.tree.sync()
 		await ctx.send(f"Synced {len(fmt)} commands")
 

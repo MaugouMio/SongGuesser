@@ -189,6 +189,11 @@ class SongGuesser(commands.Cog):
 		# 使用者按按鈕的時候，題目可能已經更換了
 		if game.current_question_idx != current_question_idx:
 			return
+		
+		# 點按鈕代表沒人猜出來要跳過，顯示答案
+		if button:
+			vid = game.question_set["questions"][current_question_idx]["vid"]
+			await game.text_channel.send(f"沒有人猜出來，公布答案：\nhttps://www.youtube.com/watch?v={vid}")
 			
 		if game.current_question_idx + 1 >= len(game.question_set["questions"]):
 			await self.settle_game(interaction)
@@ -351,7 +356,7 @@ class SongGuesser(commands.Cog):
 			button = discord.ui.Button(label = "確定")
 			button.callback = functools.partial(self.next_question, current_question_idx=idx, button=button)
 			view.add_item(button)
-			await interaction.response.send_message("還沒有人猜出答案，確定要跳過嗎？", view = view)
+			await interaction.response.send_message("還沒有人猜出答案，確定要跳過嗎？", view=view, ephemeral=True)
 			return
 			
 		await interaction.response.send_message("已成功執行指令，請稍候")
@@ -453,7 +458,7 @@ class SongGuesser(commands.Cog):
 					view.add_item(button)
 				if over_10_candidates:
 					hint_text += "\n還有更多關聯選項，建議使用更精確的關鍵字"
-				await interaction.response.send_message(hint_text, view = view, ephemeral=True)
+				await interaction.response.send_message(hint_text, view=view, ephemeral=True)
 			return
 			
 		await self.guessAccurate(interaction, answer)
@@ -472,7 +477,7 @@ class SongGuesser(commands.Cog):
 			button = discord.ui.Button(label = "確定")
 			button.callback = functools.partial(self.settle_game, button=button)
 			view.add_item(button)
-			await interaction.response.send_message("現在進行中的題目還沒有人猜出來，確定要直接結算嗎？", view = view)
+			await interaction.response.send_message("現在進行中的題目還沒有人猜出來，確定要直接結算嗎？", view=view, ephemeral=True)
 			return
 			
 		await interaction.response.send_message("已成功執行指令，請稍候")

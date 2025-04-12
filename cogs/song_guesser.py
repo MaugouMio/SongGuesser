@@ -225,9 +225,11 @@ class SongGuesser(commands.Cog):
 	# =========================================================================================
 
 	@app_commands.command(name = "開始遊戲")
+	@app_commands.describe(attachment="上傳題庫的JSON檔案")
+	@app_commands.describe(strict_mode="嚴格模式，設為True時每名玩家一個片段只能猜測一次答案")
 	@app_commands.default_permissions(moderate_members=True)
 	@app_commands.checks.has_permissions(moderate_members=True)
-	async def start(self, interaction, attachment: discord.Attachment):
+	async def start(self, interaction, attachment: discord.Attachment, strict_mode: bool):
 		"""上傳題庫，開始一場猜歌遊戲"""
 		
 		if interaction.guild.id not in self.games:
@@ -268,6 +270,7 @@ class SongGuesser(commands.Cog):
 		game.text_channel = text_channel
 		game.voice_client = voice_client
 		game.step = GameStep.WAITING
+		game.one_guess_per_part = strict_mode
 		
 		title = game.question_set["title"]
 		author = game.question_set["author"]
@@ -384,6 +387,8 @@ class SongGuesser(commands.Cog):
 			
 		await interaction.response.send_message("已成功執行指令，請稍候")
 		game.current_question_part += 1
+		
+		game.guessed_players.clear()
 		await self.play_part(game)
 	
 	@app_commands.command(name = "重播片段")

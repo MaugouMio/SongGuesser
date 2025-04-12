@@ -31,4 +31,7 @@ async def main():
 	await load()
 	await bot.start(BOT_TOKEN)
 
-asyncio.run(main())
+try:
+	asyncio.run(main())
+except KeyboardInterrupt:
+	print("Bot disconnected!")

@@ -1,7 +1,7 @@
 # This example requires the 'message_content' privileged intent to function.
 
 import asyncio, functools
-import json, os, random, struct
+import json, os, random, struct, traceback
 
 import discord
 from yt_dlp import YoutubeDL
@@ -231,66 +231,68 @@ class SongGuesser(commands.Cog):
 	@app_commands.checks.has_permissions(moderate_members=True)
 	async def start(self, interaction, attachment: discord.Attachment, strict_mode: bool):
 		"""上傳題庫，開始一場猜歌遊戲"""
-		
-		if interaction.guild.id not in self.games:
-			self.games[interaction.guild.id] = GameData(interaction.guild.id)
-		game = self.games[interaction.guild.id]
-		
-		if game.step == GameStep.PLAYING:
-			await interaction.response.send_message(f"當前伺服器已在 <#{game.channel.id}> 進行遊戲，請先使用 `/結束遊戲` 指令中斷再試", ephemeral=True)
-			return
-		
-		if not interaction.user.voice:
-			await interaction.response.send_message(f"你必須在語音頻道內才能開啟一場遊戲", ephemeral=True)
-			return
-			
 		try:
-			data = await attachment.read()
-			question_set = json.loads(data.decode("utf8"))
-			initialize_result = GameData.initialize_question_set(question_set)
-			if initialize_result != 0:
-				await interaction.response.send_message(f"題庫檔案 {attachment.filename} 的格式不符，無法開始遊戲 (錯誤代碼: {initialize_result})", ephemeral=True)
-				return
-			game.question_set = question_set
-		except:
-			await interaction.response.send_message(f"上傳題庫檔案 {attachment.filename} 時發生錯誤，請檢查檔案內容是否正確", ephemeral=True)
+			if interaction.guild.id not in self.games:
+				self.games[interaction.guild.id] = GameData(interaction.guild.id)
+			game = self.games[interaction.guild.id]
 			
-		voice_client = interaction.guild.voice_client
-		if voice_client is None:
-			await interaction.user.voice.channel.connect()
+			if game.step == GameStep.PLAYING:
+				await interaction.response.send_message(f"當前伺服器已在 <#{game.channel.id}> 進行遊戲，請先使用 `/結束遊戲` 指令中斷再試", ephemeral=True)
+				return
+			
+			if not interaction.user.voice:
+				await interaction.response.send_message(f"你必須在語音頻道內才能開啟一場遊戲", ephemeral=True)
+				return
+				
+			try:
+				data = await attachment.read()
+				question_set = json.loads(data.decode("utf8"))
+				initialize_result = GameData.initialize_question_set(question_set)
+				if initialize_result != 0:
+					await interaction.response.send_message(f"題庫檔案 {attachment.filename} 的格式不符，無法開始遊戲 (錯誤代碼: {initialize_result})", ephemeral=True)
+					return
+				game.question_set = question_set
+			except:
+				await interaction.response.send_message(f"上傳題庫檔案 {attachment.filename} 時發生錯誤，請檢查檔案內容是否正確", ephemeral=True)
+				
 			voice_client = interaction.guild.voice_client
-		else:
-			if voice_client.is_playing():
-				voice_client.stop()
-			await voice_client.move_to(interaction.user.voice.channel)
-			
-		text_channel = self.bot.get_channel(interaction.channel.id)
-		
-		game.channel = interaction.user.voice.channel
-		game.text_channel = text_channel
-		game.voice_client = voice_client
-		game.step = GameStep.WAITING
-		game.one_guess_per_part = strict_mode
-		
-		title = game.question_set["title"]
-		author = game.question_set["author"]
-		await interaction.response.send_message(f"{interaction.user.name} 開始了 __**{title} (by {author})**__ 的猜歌遊戲\n加入 <#{game.channel.id}> 頻道一起遊玩吧！")
-		
-		#倒數後直接開始第一題
-		message = await game.text_channel.send("遊戲將於 5 秒後開始...")
-		for i in range(4, -1, -1):
-			await asyncio.sleep(1)
-			if game.step == GameStep.STOPPED:
-				return
-			
-			if i > 0:
-				await message.edit(content=f"遊戲將於 {i} 秒後開始...")
+			if voice_client is None:
+				await interaction.user.voice.channel.connect()
+				voice_client = interaction.guild.voice_client
 			else:
-				await message.edit(content=f"遊戲即將開始...")
-		
-		game.step = GameStep.PLAYING
-		game.reset_progress()
-		await self.init_question(game)
+				if voice_client.is_playing():
+					voice_client.stop()
+				await voice_client.move_to(interaction.user.voice.channel)
+				
+			text_channel = self.bot.get_channel(interaction.channel.id)
+			
+			game.channel = interaction.user.voice.channel
+			game.text_channel = text_channel
+			game.voice_client = voice_client
+			game.step = GameStep.WAITING
+			game.one_guess_per_part = strict_mode
+			
+			title = game.question_set["title"]
+			author = game.question_set["author"]
+			await interaction.response.send_message(f"{interaction.user.name} 開始了 __**{title} (by {author})**__ 的猜歌遊戲\n加入 <#{game.channel.id}> 頻道一起遊玩吧！")
+			
+			#倒數後直接開始第一題
+			message = await game.text_channel.send("遊戲將於 5 秒後開始...")
+			for i in range(4, -1, -1):
+				await asyncio.sleep(1)
+				if game.step == GameStep.STOPPED:
+					return
+				
+				if i > 0:
+					await message.edit(content=f"遊戲將於 {i} 秒後開始...")
+				else:
+					await message.edit(content=f"遊戲即將開始...")
+			
+			game.step = GameStep.PLAYING
+			game.reset_progress()
+			await self.init_question(game)
+		except Exception:
+			traceback.print_exc()
 		
 	# @app_commands.command()
 	# async def yt(self, interaction, *, url: str):

@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_submodules
 
-hiddenimports = []
+hiddenimports = ['_cffi_backend']
 hiddenimports += collect_submodules('cogs')
 
 a = Analysis(

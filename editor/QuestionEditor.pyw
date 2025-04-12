@@ -551,9 +551,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.youtube_audio_cache.add(vid)
 
 	def getYoutubeVideoID(self, url):
-		youtube_regex = (r'(https?://)?(www\.)?'
-						 '(youtube|youtu|youtube-nocookie)\.(com|be)/'
-						 '(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})')
+		youtube_regex = (r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})')
 
 		youtube_match = re.match(youtube_regex, url)
 		if youtube_match:

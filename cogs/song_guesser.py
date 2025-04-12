@@ -225,8 +225,8 @@ class SongGuesser(commands.Cog):
 	# =========================================================================================
 
 	@app_commands.command(name = "開始遊戲")
-	@app_commands.describe(attachment="上傳題庫的JSON檔案")
-	@app_commands.describe(strict_mode="嚴格模式，設為True時每名玩家一個片段只能猜測一次答案")
+	@app_commands.describe(attachment = "上傳題庫的JSON檔案")
+	@app_commands.describe(strict_mode = "嚴格模式，設為True時每名玩家一個片段只能猜測一次答案")
 	@app_commands.default_permissions(moderate_members=True)
 	@app_commands.checks.has_permissions(moderate_members=True)
 	async def start(self, interaction, attachment: discord.Attachment, strict_mode: bool):
@@ -434,6 +434,7 @@ class SongGuesser(commands.Cog):
 			await interaction.response.send_message(f"❌ {interaction.user.name} 猜：{answer}")
 	
 	@app_commands.command(name = "猜")
+	@app_commands.describe(answer = "沒有符合的答案時會以關鍵字搜尋，可以空格隔開多個關鍵字")
 	async def guess(self, interaction, answer: str):
 		"""[遊戲指令] 猜測當前題目的答案"""
 		

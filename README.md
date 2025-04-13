@@ -8,7 +8,7 @@
 
 ### 架設自己的 Discord 機器人
 注意：機器人必須擁有伺服器的管理權限<br>
-參考 Discord 機器人架設教學：https://hackmd.io/@lnGojzQ2THyJmN-nQtZp8g/HyPK1VZC_
+參考 Discord 機器人架設教學：[Discord音樂機器人 - HackMD](https://hackmd.io/@lnGojzQ2THyJmN-nQtZp8g/HyPK1VZC_#%E7%94%B3%E8%AB%8BDiscord-bot)
 - 文章中提到的申請 BOT 頁面：https://discord.com/login?redirect_to=%2Fdevelopers%2Fapplications
 
 1. 參考上述文章申請 BOT 並獲得 Token

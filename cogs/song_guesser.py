@@ -294,21 +294,6 @@ class SongGuesser(commands.Cog):
 		except Exception:
 			traceback.print_exc()
 		
-	# @app_commands.command()
-	# async def yt(self, interaction, *, url: str):
-		# """播放 youtube 音樂"""
-		
-		# await interaction.response.defer(ephemeral=True)
-		# voice_check = await self.ensure_voice(interaction)
-		# if not voice_check:
-			# return
-			
-		# voice_client = interaction.guild.voice_client
-		# player = await YTDLSource.from_url(url, loop=self.bot.loop)
-		# voice_client.play(player, after=lambda e: print(f'Player error: {e}') if e else None)
-
-		# await interaction.response.send_message(f'Now playing: {player.title}', ephemeral=True)
-		
 	@app_commands.command(name = "結束遊戲")
 	@app_commands.default_permissions(moderate_members=True)
 	@app_commands.checks.has_permissions(moderate_members=True)

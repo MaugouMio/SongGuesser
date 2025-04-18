@@ -920,6 +920,8 @@
     <addaction name="action_load"/>
     <addaction name="action_save"/>
     <addaction name="action_save_as"/>
+    <addaction name="separator"/>
+    <addaction name="action_import"/>
    </widget>
    <addaction name="menu"/>
   </widget>
@@ -942,6 +944,11 @@
   <action name="action_save_as">
    <property name="text">
     <string>另存新檔</string>
+   </property>
+  </action>
+  <action name="action_import">
+   <property name="text">
+    <string>匯入題庫</string>
    </property>
   </action>
  </widget>

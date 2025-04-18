@@ -282,6 +282,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.action_load.triggered.connect(self.loadFile)
 		self.action_save.triggered.connect(self.save)
 		self.action_save_as.triggered.connect(self.saveAs)
+		self.action_import.triggered.connect(self.importFile)
 		
 		# 題庫名稱與作者
 		self.question_set_title.editingFinished.connect(self.editTitle)
@@ -430,7 +431,10 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		record = self.modify_record[self.modify_record_idx]
 		self.modify_record_idx -= 1
 		
-		if len(record.path) == 1 and record.path[0] == "questions":  # 排序題目列表
+		if len(record.path) == 1 and record.path[0] == "questions":  # 排序題目列表 or 匯入題庫
+			if len(record.before) != len(record.after):  # 匯入題庫
+				for question in record.after[len(record.before):]:
+					self.question_vid_set.remove(question["vid"])
 			self.auto_select_qustion_idx = self.getNewSelectQuestionIdx(record.after, record.before)
 			
 		target = self.question_set
@@ -468,7 +472,10 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		record = self.modify_record[self.modify_record_idx + 1]
 		self.modify_record_idx += 1
 		
-		if len(record.path) == 1 and record.path[0] == "questions":  # 排序題目列表
+		if len(record.path) == 1 and record.path[0] == "questions":  # 排序題目列表 or 匯入題庫
+			if len(record.before) != len(record.after):  # 匯入題庫
+				for question in record.after[len(record.before):]:
+					self.question_vid_set.add(question["vid"])
 			self.auto_select_qustion_idx = self.getNewSelectQuestionIdx(record.before, record.after)
 		
 		target = self.question_set
@@ -810,6 +817,36 @@ class QuestionEditor(QtWidgets.QMainWindow):
 				self.saveReal()
 		else:
 			self.saveAs()
+	
+	def importFile(self):
+		file_path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "匯入題庫", UserSetting.load_file_path, "JSON Files(*.json)")
+		if file_path == "":
+			return
+		UserSetting.load_file_path = os.path.dirname(file_path)
+		
+		with open(file_path, "r", encoding="utf8") as f:
+			question_set = json.loads(f.read())
+			result = validateQuestionFormat(question_set)
+			if result != FormatErrorCode.OK:
+				self.message_box.critical(self, WINDOW_TITLE, f"題庫檔案格式有誤，錯誤代碼：{result}")
+				return
+		
+		imported = 0
+		new_question_list = self.question_set["questions"].copy()
+		for question in question_set["questions"]:
+			if question["vid"] in self.question_vid_set:
+				continue
+				
+			new_question_list.append(question)
+			self.question_vid_set.add(question["vid"])
+			imported += 1
+			
+		if imported > 0:
+			self.recordModify(["questions"], before = self.question_set["questions"], after = new_question_list)
+			self.question_set["questions"] = new_question_list
+			self.updateQuestionList()
+			
+		self.message_box.information(self, WINDOW_TITLE, f"已從 {os.path.basename(file_path)} 匯入 {imported} 個題目")
 		
 	# ====================================================================================================
 	

@@ -292,7 +292,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.edit_misleading_btn.clicked.connect(self.misleading_ans_window.show)
 		
 		# 題目列表
-		self.question_list_widget.itemClicked.connect(self.updateQuestionDetail)
+		self.question_list_widget.itemSelectionChanged.connect(self.updateQuestionDetail)
 		self.question_list_widget.itemChanged.connect(self.editQuestionTitle)
 		self.add_question_btn.clicked.connect(self.addQuestion)
 		self.del_question_btn.clicked.connect(self.delQuestion)

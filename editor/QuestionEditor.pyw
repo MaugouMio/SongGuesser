@@ -274,6 +274,9 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.auto_select_qustion_idx = -1
 		self.auto_select_qustion_part_idx = -1
 		
+		self.search_indexes = []
+		self.current_search_index = 0
+		
 		self.initUI()
 
 	def initUI(self):
@@ -293,11 +296,19 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.edit_misleading_btn.clicked.connect(self.misleading_ans_window.show)
 		
 		# 題目列表
+		self.default_background_brush = QtGui.QBrush()
+		self.highlight_background_brush = QtGui.QBrush(QtGui.QColor(255, 255, 0))
+		self.highlight_select_background_brush = QtGui.QBrush(QtGui.QColor(255, 127, 0))
+		
 		self.question_list_widget.itemSelectionChanged.connect(self.updateQuestionDetail)
 		self.question_list_widget.itemChanged.connect(self.editQuestionTitle)
 		self.add_question_btn.clicked.connect(self.addQuestion)
 		self.del_question_btn.clicked.connect(self.delQuestion)
 		self.sort_question_btn.clicked.connect(self.sortQuestion)
+		
+		self.search_input.textEdited.connect(self.updateSearch)
+		self.prev_search_btn.clicked.connect(self.prevSearch)
+		self.next_search_btn.clicked.connect(self.nextSearch)
 		
 		# 答案列表
 		self.add_ans_btn.clicked.connect(self.addValidAnswer)
@@ -596,6 +607,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 	def updateQuestionList(self):
 		question_list = self.question_set["questions"]
 		self.question_list_title.setText(f"題目列表 ({len(question_list)})")
+		
 		for i in range(len(question_list)):
 			if self.question_list_widget.count() <= i:
 				item = QtWidgets.QListWidgetItem()
@@ -606,6 +618,14 @@ class QuestionEditor(QtWidgets.QMainWindow):
 				
 			item.setText(question_list[i]["title"])
 			item.setHidden(False)
+			
+			if i in self.search_indexes:
+				if i == self.search_indexes[self.current_search_index]:
+					item.setBackground(self.highlight_select_background_brush)
+				else:
+					item.setBackground(self.highlight_background_brush)
+			else:
+				item.setBackground(self.default_background_brush)
 				
 		for i in range(len(question_list), self.question_list_widget.count()):
 			item = self.question_list_widget.item(i)
@@ -729,7 +749,10 @@ class QuestionEditor(QtWidgets.QMainWindow):
 	def updatePage(self):
 		# 更新整個畫面內容
 		self.updateTitleAuthor()
-		self.updateQuestionList()
+		if self.search_input.text() != "":
+			self.updateSearch(self.search_input.text(), change_search_select = False)
+		else:
+			self.updateQuestionList()
 		self.updateQuestionDetail()
 		self.updateWindowTitle()
 		
@@ -844,7 +867,11 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		if imported > 0:
 			self.recordModify(["questions"], before = self.question_set["questions"], after = new_question_list)
 			self.question_set["questions"] = new_question_list
-			self.updateQuestionList()
+			
+			if self.search_input.text() != "":
+				self.updateSearch(self.search_input.text(), change_search_select = False)
+			else:
+				self.updateQuestionList()
 			
 		self.message_box.information(self, WINDOW_TITLE, f"已從 {os.path.basename(file_path)} 匯入 {imported} 個題目")
 		
@@ -962,8 +989,12 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			
 			self.recordModify(["questions", len(self.question_set["questions"]) - 1], after = question)
 				
+		if self.search_input.text() != "":
+			self.updateSearch(self.search_input.text(), change_search_select = False)
+		else:
+			self.updateQuestionList()
+			
 		# 點到新增的那個項目上
-		self.updateQuestionList()
 		self.question_list_widget.setCurrentRow(len(self.question_set["questions"]) - 1)
 		self.updateQuestionDetail()
 	
@@ -984,6 +1015,9 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		if idx >= len(question_list):
 			self.question_list_widget.setCurrentRow(len(question_list) - 1)
 		self.part_list_widget.setCurrentRow(0)
+		
+		if self.search_input.text() != "":
+			self.updateSearch(self.search_input.text(), change_search_select = False)
 		self.updatePage()
 	
 	def getNewSelectQuestionIdx(self, before_list, after_list):
@@ -1021,10 +1055,78 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			
 		newText = item.text()[:MAX_STR_LEN]
 		question = self.question_set["questions"][qidx]
+		if question["title"] == newText:
+			return
+			
 		self.recordModify(["questions", qidx, "title"], before = question["title"], after = newText)
 		question["title"] = newText
 		
+		if self.search_input.text() != "":
+			self.updateSearch(self.search_input.text(), change_search_select = False)
+		else:
+			self.updateQuestionList()
+		
+	def updateSearch(self, text, *, change_search_select = True):
+		question_list = self.question_set["questions"]
+		current_select = self.question_list_widget.currentRow()
+		
+		self.search_indexes = []
+		if change_search_select:
+			self.current_search_index = -1
+			
+		is_clear_search = text == ""
+		if not is_clear_search:
+			lower_text = text.lower()
+			for i in range(len(question_list)):
+				if question_list[i]["title"].lower().find(lower_text) >= 0:
+					self.search_indexes.append(i)
+					# 自動跳到當前選擇之後的第一個搜尋結果
+					if change_search_select and self.current_search_index < 0 and i >= current_select:
+						self.current_search_index = len(self.search_indexes) - 1
+			
+		# 當前選擇之後沒有符合的搜尋就跳回第一個搜尋結果
+		if change_search_select and self.current_search_index < 0:
+			self.current_search_index = 0
+		# 沒有自動重選時，有可能項目變動導致原本選的項目不存在了
+		if self.current_search_index >= len(self.search_indexes):
+			self.current_search_index = 0
+		
+		if is_clear_search:
+			self.search_count_label.setText("-/-")
+			if change_search_select:
+				self.question_list_widget.scrollToItem(self.question_list_widget.item(current_select))
+		else:
+			self.search_count_label.setText(f"{self.current_search_index + 1}/{len(self.search_indexes)}")
+			if change_search_select and len(self.search_indexes) > 0:
+				self.question_list_widget.scrollToItem(self.question_list_widget.item(self.search_indexes[self.current_search_index]))
+			
 		self.updateQuestionList()
+		
+	def prevSearch(self):
+		if len(self.search_indexes) > 1:
+			self.question_list_widget.item(self.search_indexes[self.current_search_index]).setBackground(self.highlight_background_brush)
+			self.current_search_index -= 1
+			if self.current_search_index < 0:
+				self.current_search_index = len(self.search_indexes) - 1
+			self.question_list_widget.item(self.search_indexes[self.current_search_index]).setBackground(self.highlight_select_background_brush)
+			
+			self.search_count_label.setText(f"{self.current_search_index + 1}/{len(self.search_indexes)}")
+		
+		if len(self.search_indexes) > 0:
+			self.question_list_widget.scrollToItem(self.question_list_widget.item(self.search_indexes[self.current_search_index]))
+		
+	def nextSearch(self):
+		if len(self.search_indexes) > 1:
+			self.question_list_widget.item(self.search_indexes[self.current_search_index]).setBackground(self.highlight_background_brush)
+			self.current_search_index += 1
+			if self.current_search_index >= len(self.search_indexes):
+				self.current_search_index = 0
+			self.question_list_widget.item(self.search_indexes[self.current_search_index]).setBackground(self.highlight_select_background_brush)
+			
+			self.search_count_label.setText(f"{self.current_search_index + 1}/{len(self.search_indexes)}")
+		
+		if len(self.search_indexes) > 0:
+			self.question_list_widget.scrollToItem(self.question_list_widget.item(self.search_indexes[self.current_search_index]))
 		
 	# ====================================================================================================
 	

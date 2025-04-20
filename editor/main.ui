@@ -141,9 +141,9 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>10</y>
+        <y>0</y>
         <width>241</width>
-        <height>21</height>
+        <height>16</height>
        </rect>
       </property>
       <property name="font">
@@ -165,9 +165,9 @@
       <property name="geometry">
        <rect>
         <x>5</x>
-        <y>40</y>
+        <y>50</y>
         <width>251</width>
-        <height>431</height>
+        <height>421</height>
        </rect>
       </property>
       <property name="currentRow">
@@ -212,6 +212,120 @@
         </widget>
        </item>
       </layout>
+     </widget>
+     <widget class="QLineEdit" name="search_input">
+      <property name="geometry">
+       <rect>
+        <x>40</x>
+        <y>23</y>
+        <width>111</width>
+        <height>21</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_5">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>22</y>
+        <width>41</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <family>微軟正黑體</family>
+       </font>
+      </property>
+      <property name="text">
+       <string>搜尋</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="prev_search_btn">
+      <property name="geometry">
+       <rect>
+        <x>204</x>
+        <y>22</y>
+        <width>21</width>
+        <height>23</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <family>微軟正黑體</family>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>↑</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="next_search_btn">
+      <property name="geometry">
+       <rect>
+        <x>230</x>
+        <y>22</y>
+        <width>21</width>
+        <height>23</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <family>微軟正黑體</family>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>↓</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="search_count_label">
+      <property name="geometry">
+       <rect>
+        <x>153</x>
+        <y>22</y>
+        <width>51</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="palette">
+       <palette>
+        <active>
+         <colorrole role="WindowText">
+          <brush brushstyle="SolidPattern">
+           <color alpha="255">
+            <red>127</red>
+            <green>127</green>
+            <blue>127</blue>
+           </color>
+          </brush>
+         </colorrole>
+        </active>
+        <inactive>
+         <colorrole role="WindowText">
+          <brush brushstyle="SolidPattern">
+           <color alpha="255">
+            <red>127</red>
+            <green>127</green>
+            <blue>127</blue>
+           </color>
+          </brush>
+         </colorrole>
+        </inactive>
+        <disabled/>
+       </palette>
+      </property>
+      <property name="font">
+       <font>
+        <family>微軟正黑體</family>
+       </font>
+      </property>
+      <property name="text">
+       <string>-/-</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
      </widget>
     </widget>
     <widget class="QFrame" name="question_detail_page">

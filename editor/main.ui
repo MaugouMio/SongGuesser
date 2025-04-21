@@ -1036,6 +1036,8 @@
     <addaction name="action_save_as"/>
     <addaction name="separator"/>
     <addaction name="action_import"/>
+    <addaction name="separator"/>
+    <addaction name="action_setting"/>
    </widget>
    <addaction name="menu"/>
   </widget>
@@ -1063,6 +1065,11 @@
   <action name="action_import">
    <property name="text">
     <string>匯入題庫</string>
+   </property>
+  </action>
+  <action name="action_setting">
+   <property name="text">
+    <string>設定</string>
    </property>
   </action>
  </widget>

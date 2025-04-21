@@ -96,6 +96,54 @@ class Slider(QtWidgets.QSlider):
 
 
 
+# 參考 settings.ui 生成的程式碼調整
+class SettingWindow(QtWidgets.QWidget):
+	def __init__(self):
+		super().__init__()
+		
+		self.resize(200, 120)
+		self.setMinimumSize(200, 120)
+		self.setMaximumSize(200, 120)
+		self.setWindowTitle("設定")
+		
+		self.verticalLayoutWidget = QtWidgets.QWidget(self)
+		self.verticalLayoutWidget.setGeometry(QRect(40, 10, 121, 101))
+		self.verticalLayout = QtWidgets.QVBoxLayout(self.verticalLayoutWidget)
+		self.verticalLayout.setSpacing(0)
+		
+		self.label_2 = QtWidgets.QLabel(self.verticalLayoutWidget)
+		font = QtGui.QFont()
+		font.setBold(True)
+		self.label_2.setFont(font)
+		self.label_2.setAlignment(Qt.AlignmentFlag.AlignCenter)
+		self.label_2.setText(QCoreApplication.translate("SettingWindow", u"\u66ab\u5b58\u97f3\u6a94\u5bb9\u91cf\u4e0a\u9650", None))
+
+		self.verticalLayout.addWidget(self.label_2)
+
+		self.cache_size_setter = QtWidgets.QSpinBox(self.verticalLayoutWidget)
+		self.cache_size_setter.setAlignment(Qt.AlignmentFlag.AlignCenter)
+		self.cache_size_setter.setMaximum(100000)
+		self.cache_size_setter.setStepType(QtWidgets.QAbstractSpinBox.StepType.AdaptiveDecimalStepType)
+		self.cache_size_setter.setValue(100)
+		self.cache_size_setter.setSuffix(QCoreApplication.translate("SettingWindow", u" MB", None))
+
+		self.verticalLayout.addWidget(self.cache_size_setter)
+
+		self.label = QtWidgets.QLabel(self.verticalLayoutWidget)
+		self.label.setFont(font)
+		self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+		self.label.setText(QCoreApplication.translate("SettingWindow", u"\u66ab\u5b58\u5f71\u7247\u8cc7\u8a0a\u6578\u91cf", None))
+
+		self.verticalLayout.addWidget(self.label)
+
+		self.cache_info_setter = QtWidgets.QSpinBox(self.verticalLayoutWidget)
+		self.cache_info_setter.setAlignment(Qt.AlignmentFlag.AlignCenter)
+		self.cache_info_setter.setMaximum(100000)
+		self.cache_info_setter.setStepType(QtWidgets.QAbstractSpinBox.StepType.AdaptiveDecimalStepType)
+		self.cache_info_setter.setValue(300)
+
+		self.verticalLayout.addWidget(self.cache_info_setter)
+
 # 參考 misleading_edit.ui 生成的程式碼調整
 class MisleadingAnsWindow(QtWidgets.QWidget):
 	def __init__(self, addCallback, delCallback, sortCallback, editCallback, undo, redo):
@@ -287,6 +335,10 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		self.action_save_as.triggered.connect(self.saveAs)
 		self.action_import.triggered.connect(self.importFile)
 		
+		# 設定視窗
+		self.settings_window = SettingWindow()
+		self.action_setting.triggered.connect(self.settings_window.show)
+		
 		# 題庫名稱與作者
 		self.question_set_title.editingFinished.connect(self.editTitle)
 		self.question_set_author.editingFinished.connect(self.editAuthor)
@@ -399,6 +451,8 @@ class QuestionEditor(QtWidgets.QMainWindow):
 				do_close = False
 		
 		if do_close:
+			if self.settings_window.isVisible():
+				self.settings_window.hide()
 			if self.misleading_ans_window.isVisible():
 				self.misleading_ans_window.hide()
 				
@@ -442,8 +496,8 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		record = self.modify_record[self.modify_record_idx]
 		self.modify_record_idx -= 1
 		
-		if len(record.path) == 1 and record.path[0] == "questions":  # 排序題目列表 or 匯入題庫
-			if len(record.before) != len(record.after):  # 匯入題庫
+		if len(record.path) == 1 and record.path[0] == "questions":	 # 排序題目列表 or 匯入題庫
+			if len(record.before) != len(record.after):	 # 匯入題庫
 				for question in record.after[len(record.before):]:
 					self.question_vid_set.remove(question["vid"])
 			self.auto_select_qustion_idx = self.getNewSelectQuestionIdx(record.after, record.before)
@@ -464,11 +518,11 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		if type(record.path[-1]) is list:  # means swap
 			target[record.path[-1][0]], target[record.path[-1][1]] = target[record.path[-1][1]], target[record.path[-1][0]]
 		elif record.before == None:
-			if len(record.path) == 2 and record.path[0] == "questions":  # undo add question
+			if len(record.path) == 2 and record.path[0] == "questions":	 # undo add question
 				self.question_vid_set.remove(target[record.path[-1]]["vid"])
 			del target[record.path[-1]]
 		elif record.after == None:
-			if len(record.path) == 2 and record.path[0] == "questions":  # undo remove question
+			if len(record.path) == 2 and record.path[0] == "questions":	 # undo remove question
 				self.question_vid_set.add(record.before["vid"])
 			target.insert(record.path[-1], copy.deepcopy(record.before))
 		else:
@@ -483,8 +537,8 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		record = self.modify_record[self.modify_record_idx + 1]
 		self.modify_record_idx += 1
 		
-		if len(record.path) == 1 and record.path[0] == "questions":  # 排序題目列表 or 匯入題庫
-			if len(record.before) != len(record.after):  # 匯入題庫
+		if len(record.path) == 1 and record.path[0] == "questions":	 # 排序題目列表 or 匯入題庫
+			if len(record.before) != len(record.after):	 # 匯入題庫
 				for question in record.after[len(record.before):]:
 					self.question_vid_set.add(question["vid"])
 			self.auto_select_qustion_idx = self.getNewSelectQuestionIdx(record.before, record.after)
@@ -505,11 +559,11 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		if type(record.path[-1]) is list:  # means swap
 			target[record.path[-1][0]], target[record.path[-1][1]] = target[record.path[-1][1]], target[record.path[-1][0]]
 		elif record.after == None:
-			if len(record.path) == 2 and record.path[0] == "questions":  # redo remove question
+			if len(record.path) == 2 and record.path[0] == "questions":	 # redo remove question
 				self.question_vid_set.remove(target[record.path[-1]]["vid"])
 			del target[record.path[-1]]
 		elif record.before == None:
-			if len(record.path) == 2 and record.path[0] == "questions":  # redo add question
+			if len(record.path) == 2 and record.path[0] == "questions":	 # redo add question
 				self.question_vid_set.add(record.after["vid"])
 			target.insert(record.path[-1], copy.deepcopy(record.after))
 		else:

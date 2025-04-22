@@ -40,6 +40,8 @@ class UserSetting:
 	@staticmethod
 	def Load():
 		UserSetting.volume = 50
+		UserSetting.cache_size = 100  # MB
+		UserSetting.cache_info_count = 300
 		UserSetting.load_file_path = ""
 		UserSetting.save_new_file_path = ""
 		
@@ -50,6 +52,8 @@ class UserSetting:
 			userData = json.loads(f.read())
 			
 			UserSetting.volume = userData.get("volume", 50)
+			UserSetting.cache_size = userData.get("cache_size", 50)
+			UserSetting.cache_info_count = userData.get("cache_info_count", 50)
 			UserSetting.load_file_path = userData.get("load_file_path", "")
 			UserSetting.save_new_file_path = userData.get("save_new_file_path", "")
 	
@@ -58,6 +62,8 @@ class UserSetting:
 		with open(UserSetting.CACHE_FILE_PATH, "w", encoding = "utf8") as f:
 			f.write(json.dumps({
 				"volume": UserSetting.volume,
+				"cache_size": UserSetting.cache_size,
+				"cache_info_count": UserSetting.cache_info_count,
 				"load_file_path": UserSetting.load_file_path,
 				"save_new_file_path": UserSetting.save_new_file_path
 			}, indent=4))
@@ -126,6 +132,7 @@ class SettingWindow(QtWidgets.QWidget):
 		self.cache_size_setter.setStepType(QtWidgets.QAbstractSpinBox.StepType.AdaptiveDecimalStepType)
 		self.cache_size_setter.setValue(100)
 		self.cache_size_setter.setSuffix(QCoreApplication.translate("SettingWindow", u" MB", None))
+		self.cache_size_setter.valueChanged.connect(self.changeCacheSize)
 
 		self.verticalLayout.addWidget(self.cache_size_setter)
 
@@ -141,8 +148,15 @@ class SettingWindow(QtWidgets.QWidget):
 		self.cache_info_setter.setMaximum(100000)
 		self.cache_info_setter.setStepType(QtWidgets.QAbstractSpinBox.StepType.AdaptiveDecimalStepType)
 		self.cache_info_setter.setValue(300)
+		self.cache_size_setter.valueChanged.connect(self.changeCacheInfo)
 
 		self.verticalLayout.addWidget(self.cache_info_setter)
+	
+	def changeCacheSize(self, value):
+		UserSetting.cache_size = value
+	
+	def changeCacheInfo(self, value):
+		UserSetting.cache_info_count = value
 
 # 參考 misleading_edit.ui 生成的程式碼調整
 class MisleadingAnsWindow(QtWidgets.QWidget):

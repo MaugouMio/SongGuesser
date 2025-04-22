@@ -35,6 +35,7 @@ QUESTION_OBJ_TEMPLATE = {
 }
 
 YOUTUBE_CACHE_INFO_FILE = "cache/data_v2.pickle"
+YOUTUBE_CACHE_AUDIO_FILE = "cache/audio_order.pickle"
 
 
 
@@ -149,6 +150,7 @@ class SettingWindow(QtWidgets.QWidget):
 
 		self.cache_info_setter = QtWidgets.QSpinBox(self.verticalLayoutWidget)
 		self.cache_info_setter.setAlignment(Qt.AlignmentFlag.AlignCenter)
+		self.cache_info_setter.setMinimum(1)
 		self.cache_info_setter.setMaximum(100000)
 		self.cache_info_setter.setStepType(QtWidgets.QAbstractSpinBox.StepType.AdaptiveDecimalStepType)
 		self.cache_info_setter.setValue(UserSetting.cache_info_count)
@@ -288,7 +290,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		# 加載使用者設定資料
 		UserSetting.Load()
 		
-		# cache 處理
+		# 影片資訊 cache
 		if not os.path.exists("cache"):
 			os.mkdir("cache")
 		if os.path.isfile(YOUTUBE_CACHE_INFO_FILE):
@@ -300,10 +302,28 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			self.youtube_cache = OrderedDict()
 			
 		# 音檔 cache 紀錄
-		self.youtube_audio_cache = set()
+		if os.path.isfile(YOUTUBE_CACHE_AUDIO_FILE):
+			with open(YOUTUBE_CACHE_AUDIO_FILE, "rb") as f:
+				self.youtube_audio_cache = pickle.load(f)
+		else:
+			self.youtube_audio_cache = OrderedDict()
+		# 保險起見用現有的檔案刷新一次資訊 (但保留紀錄的順序)
+		size_quota = UserSetting.cache_size * 1048576
+		self.cache_size_total = 0
+		for vid in self.youtube_audio_cache:
+			file_path = f"cache/{vid}"
+			if os.path.isfile(file_path):
+				file_size = os.path.getsize(file_path)
+				self.youtube_audio_cache[vid] = file_size
+				self.cache_size_total += file_size
+			else:
+				del self.youtube_audio_cache[vid]
+		while self.cache_size_total > size_quota and len(self.youtube_audio_cache) > 0:
+			self.cache_size_total -= self.youtube_audio_cache.popitem(last = False)[1]
+		# 刪掉沒有控管的檔案
 		for file in os.listdir("cache"):
-			if "." not in file:
-				self.youtube_audio_cache.add(file)
+			if "." not in file and file not in self.youtube_audio_cache:
+				os.remove(f"cache/{file}")
 		
 		# 確認是否先存檔的 message box
 		self.check_save = QtWidgets.QMessageBox(self)
@@ -484,6 +504,8 @@ class QuestionEditor(QtWidgets.QMainWindow):
 				
 			with open(YOUTUBE_CACHE_INFO_FILE, "wb") as f:
 				pickle.dump(self.youtube_cache, f)
+			with open(YOUTUBE_CACHE_AUDIO_FILE, "wb") as f:
+				pickle.dump(self.youtube_audio_cache, f)
 				
 			# 儲存使用者偏好資料
 			UserSetting.Save()
@@ -633,6 +655,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 
 	def downloadYoutube(self, vid):
 		if vid in self.youtube_audio_cache:
+			self.youtube_audio_cache.move_to_end(vid)
 			return
 			
 		url = f"https://www.youtube.com/watch?v={vid}"
@@ -651,7 +674,18 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		}
 		with YoutubeDL(ytdlp_format_options) as ytdl:
 			ytdl.download(url)
-		self.youtube_audio_cache.add(vid)
+			
+		file_size = os.path.getsize(f"cache/{vid}")
+		size_quota = UserSetting.cache_size * 1048576
+		while self.cache_size_total + file_size > size_quota and len(self.youtube_audio_cache) > 0:
+			cache_item = self.youtube_audio_cache.popitem(last = False)
+			self.cache_size_total -= cache_item[1]
+			os.remove(f"cache/{cache_item[0]}")
+			# 順便清掉歌曲長度暫存
+			if cache_item[0] in self.youtube_cache:
+				del self.youtube_cache[cache_item[0]]["duration"]
+		self.youtube_audio_cache[vid] = file_size
+		self.cache_size_total += file_size
 
 	def getYoutubeVideoID(self, url):
 		youtube_regex = (r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})')

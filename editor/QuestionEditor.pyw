@@ -1,4 +1,6 @@
 import sys, os, json, re, pickle, copy
+from collections import OrderedDict
+
 sys.path.insert(0, '..')
 from cogs.format_checker import *
 
@@ -32,6 +34,8 @@ QUESTION_OBJ_TEMPLATE = {
 	"candidates": []
 }
 
+YOUTUBE_CACHE_INFO_FILE = "cache/data_v2.pickle"
+
 
 
 class UserSetting:
@@ -52,8 +56,8 @@ class UserSetting:
 			userData = json.loads(f.read())
 			
 			UserSetting.volume = userData.get("volume", 50)
-			UserSetting.cache_size = userData.get("cache_size", 50)
-			UserSetting.cache_info_count = userData.get("cache_info_count", 50)
+			UserSetting.cache_size = userData.get("cache_size", 100)
+			UserSetting.cache_info_count = userData.get("cache_info_count", 300)
 			UserSetting.load_file_path = userData.get("load_file_path", "")
 			UserSetting.save_new_file_path = userData.get("save_new_file_path", "")
 	
@@ -130,7 +134,7 @@ class SettingWindow(QtWidgets.QWidget):
 		self.cache_size_setter.setAlignment(Qt.AlignmentFlag.AlignCenter)
 		self.cache_size_setter.setMaximum(100000)
 		self.cache_size_setter.setStepType(QtWidgets.QAbstractSpinBox.StepType.AdaptiveDecimalStepType)
-		self.cache_size_setter.setValue(100)
+		self.cache_size_setter.setValue(UserSetting.cache_size)
 		self.cache_size_setter.setSuffix(QCoreApplication.translate("SettingWindow", u" MB", None))
 		self.cache_size_setter.valueChanged.connect(self.changeCacheSize)
 
@@ -147,15 +151,19 @@ class SettingWindow(QtWidgets.QWidget):
 		self.cache_info_setter.setAlignment(Qt.AlignmentFlag.AlignCenter)
 		self.cache_info_setter.setMaximum(100000)
 		self.cache_info_setter.setStepType(QtWidgets.QAbstractSpinBox.StepType.AdaptiveDecimalStepType)
-		self.cache_info_setter.setValue(300)
-		self.cache_size_setter.valueChanged.connect(self.changeCacheInfo)
+		self.cache_info_setter.setValue(UserSetting.cache_info_count)
+		self.cache_info_setter.valueChanged.connect(self.changeCacheInfo)
 
 		self.verticalLayout.addWidget(self.cache_info_setter)
 	
 	def changeCacheSize(self, value):
+		if value < 0:
+			self.cache_size_setter.setValue(UserSetting.cache_size)
 		UserSetting.cache_size = value
 	
 	def changeCacheInfo(self, value):
+		if value < 0:
+			self.cache_info_setter.setValue(UserSetting.cache_info_count)
 		UserSetting.cache_info_count = value
 
 # 參考 misleading_edit.ui 生成的程式碼調整
@@ -277,20 +285,24 @@ class QuestionEditor(QtWidgets.QMainWindow):
 		super().__init__()
 		uic.loadUi("main.ui", self)
 		
+		# 加載使用者設定資料
+		UserSetting.Load()
+		
 		# cache 處理
 		if not os.path.exists("cache"):
 			os.mkdir("cache")
-		if os.path.isfile("cache/data.pickle"):
-			with open("cache/data.pickle", "rb") as f:
+		if os.path.isfile(YOUTUBE_CACHE_INFO_FILE):
+			with open(YOUTUBE_CACHE_INFO_FILE, "rb") as f:
 				self.youtube_cache = pickle.load(f)
+				while len(self.youtube_cache) > UserSetting.cache_info_count:
+					self.youtube_cache.popitem(last = False)
 		else:
-			self.youtube_cache = dict()
-		# 加載使用者偏好資料
-		UserSetting.Load()
+			self.youtube_cache = OrderedDict()
+			
 		# 音檔 cache 紀錄
 		self.youtube_audio_cache = set()
 		for file in os.listdir("cache"):
-			if file != "data.pickle":
+			if "." not in file:
 				self.youtube_audio_cache.add(file)
 		
 		# 確認是否先存檔的 message box
@@ -470,7 +482,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			if self.misleading_ans_window.isVisible():
 				self.misleading_ans_window.hide()
 				
-			with open("cache/data.pickle", "wb") as f:
+			with open(YOUTUBE_CACHE_INFO_FILE, "wb") as f:
 				pickle.dump(self.youtube_cache, f)
 				
 			# 儲存使用者偏好資料
@@ -589,6 +601,7 @@ class QuestionEditor(QtWidgets.QMainWindow):
 
 	def getYoutubeInfo(self, vid):
 		if vid in self.youtube_cache:
+			self.youtube_cache.move_to_end(vid)
 			return self.youtube_cache[vid]
 			
 		url = f"https://noembed.com/embed?url=https://www.youtube.com/watch?v={vid}"
@@ -604,7 +617,11 @@ class QuestionEditor(QtWidgets.QMainWindow):
 			"author": data["author_name"],
 			"thumbnail": data["thumbnail_url"]
 		}
+		
 		self.youtube_cache[vid] = info
+		while len(self.youtube_cache) > UserSetting.cache_info_count:
+			self.youtube_cache.popitem(last = False)
+			
 		return info
 	
 	def getYoutubePlaylist(self, url):

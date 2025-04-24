@@ -108,16 +108,17 @@ class Slider(QtWidgets.QSlider):
 
 
 # 參考 settings.ui 生成的程式碼調整
-class SettingWindow(QtWidgets.QWidget):
+class SettingWindow(QtWidgets.QDialog):
 	def __init__(self):
 		super().__init__()
 		
 		self.resize(200, 120)
 		self.setMinimumSize(200, 120)
 		self.setMaximumSize(200, 120)
+		self.setModal(True)
 		self.setWindowTitle("設定")
 		
-		self.verticalLayoutWidget = QtWidgets.QWidget(self)
+		self.verticalLayoutWidget = QtWidgets.QDialog(self)
 		self.verticalLayoutWidget.setGeometry(QRect(40, 10, 121, 101))
 		self.verticalLayout = QtWidgets.QVBoxLayout(self.verticalLayoutWidget)
 		self.verticalLayout.setSpacing(0)
@@ -157,6 +158,7 @@ class SettingWindow(QtWidgets.QWidget):
 		self.cache_info_setter.valueChanged.connect(self.changeCacheInfo)
 
 		self.verticalLayout.addWidget(self.cache_info_setter)
+		self.setLayout(self.verticalLayout)
 	
 	def changeCacheSize(self, value):
 		if value < 0:
